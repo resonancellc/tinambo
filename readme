@@ -1,0 +1,21 @@
+Tinambo is a one-file blogging system written in PHP that doesn't have any other
+requirements than PHP to run. It doesn't need a database, it stores the posts
+and pages into JSON text files.
+
+Features:
+
+    posts, pages, image attachments
+    editor area for easy blog administration
+    contact form
+    full-text search
+    Facebook and Twitter integration
+    Google Analytics integration
+    Image editing via Picozu Image Editor
+    Facebook or Disqus comments
+
+@name Tinambo
+@package Tinambo
+@author Marius Stanciu - Sergiu <marius@vox.space>
+@website https://vox.space
+@version 2.0.0
+@license Public Domain https://vox.space/LICENSE
