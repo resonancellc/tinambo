@@ -122,7 +122,7 @@ class TinamboConfig {
         ),
         /* your auth key, CHANGE THIS to something only you know, and
          * change it at least monthly */
-        'key' => 'l0l0z@ur',
+        'key' => false,
     );
 
     /**
@@ -1462,7 +1462,7 @@ class TinamboTemplate {
                             $out .= $results;
                         }
                         else {
-                            $out .= $this->message(_L::get('There are no results for the specified search term.'), true);
+                            $out .= $this->message(_L::get('There are no results for the specified search term.'), false);
                         }
                     } else {
                         $out .= $this->message(_L::get('Please fill in the search term.'), true);
