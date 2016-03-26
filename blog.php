@@ -85,6 +85,8 @@ class TinamboConfig {
         'enableUpload' => true,
         /* enable JSON output */
         'enableJSON' => true,
+        'apiKey' => false,
+        'apiSecret' => false,
         /* enable ATOM feeds */
         'enableATOM' => true,
         /* date format for posts */
@@ -180,7 +182,7 @@ class TinamboBlog {
         $this->_check();
         $this->_getPosts();
 
-        if ($this->config->get('enablePages') === true) {
+        if ($this->config->get('enablePages') == true) {
             $this->_getPages();
         }
         if (count($this->posts) > 0) {
@@ -246,7 +248,7 @@ class TinamboBlog {
                 $fileName = 'js/' . $file . '.js';
                 break;
             case 'extension':
-                if ($this->config->get('enableLibs') === true) {
+                if ($this->config->get('enableLibs') == true) {
                     $fileName = 'lib/' . $file . '.php';
                 }
                 break;
@@ -322,7 +324,7 @@ class TinamboBlog {
                         $this->loadExternalFile('footer');
                 break;
             case 'logout':
-                if ($this->isLogin() === true) {
+                if ($this->isLogin() == true) {
                     $this->logout();
                 }
                 header('Location: ' . $this->formatURL());
@@ -372,11 +374,11 @@ class TinamboBlog {
                 if (!$this->isLogin()) {
                     header('Location: ' . $this->formatURL('login'));
                 }
-                if ($section === 'editpost' || $section === 'deletepost') {
+                if ($section == 'editpost' || $section == 'deletepost') {
                     if (!$id || !$post = $this->_getPostById($id)) {
                         $this->get404();
                     }
-                } else if ($section === 'editpage' || $section === 'deletepage') {
+                } else if ($section == 'editpage' || $section == 'deletepage') {
                     if (!$id || !$post = $this->_getPageById($id)) {
                         $this->get404();
                     }
@@ -417,7 +419,7 @@ class TinamboBlog {
      * @returns String
      */
     public function formatURL($mode = null, $id = null, $page = null) {
-        if ($this->config->get('rewriteURLs') === true) {
+        if ($this->config->get('rewriteURLs') == true) {
             return $this->config->get('domain') . $this->getSlug('blog') . ($mode != null ? '/' . $mode : '') . ($id != null ? '/' . $id : '') . ($page != null ? '/' . $page : '');
         } else {
             $str = '';
@@ -525,7 +527,7 @@ class TinamboBlog {
      */
     private function _getPostById($id) {
         for ($i = 0; $i < count($this->posts); $i++) {
-            if ($this->posts[$i]->getId() === $id) {
+            if ($this->posts[$i]->getId() == $id) {
                 return $this->posts[$i];
             }
         }
@@ -541,7 +543,7 @@ class TinamboBlog {
      */
     private function _getPageById($id) {
         for ($i = 0; $i < count($this->pages); $i++) {
-            if ($this->pages[$i]->getId() === $id) {
+            if ($this->pages[$i]->getId() == $id) {
                 return $this->pages[$i];
             }
         }
@@ -573,13 +575,13 @@ class TinamboBlog {
         $hasResults = false;
         $out = '<ul>';
         for ($i = 0; $i < count($posts); $i++) {
-            if ($posts[$i]->isPublished() && strpos($posts[$i]->getContent(), $query) !== false) {
+            if ($posts[$i]->isPublished() && strpos($posts[$i]->getContent(), $query) != false) {
                 $out .= '<li><a href="' . $posts[$i]->getPermalink() . '">' . $posts[$i]->getTitle() . '</a></li>';
                 $hasResults = true;
             }
         }
         $out .= '</ul>';
-        return ($hasResults === true) ? $out : false;
+        return ($hasResults == true) ? $out : false;
     }
 
     /**
@@ -715,7 +717,56 @@ class TinamboBlog {
      */
     public function isAdmin() {
         $mode = (isset($_GET['mode'])) ? $this->cleanup($_GET['mode']) : 'index';
-        return (($this->isLogin()) && ($mode === $this->getSlug('editor'))) ? true : false;
+        return (($this->isLogin()) && ($mode == $this->getSlug('editor'))) ? true : false;
+    }
+
+    /**
+     * Return $_GET data from the specified key
+     *
+     * @public
+     * @param String $key
+     * @returns $String || Boolean
+     */
+    public function requestGet($key, $return = false) {
+        if (isset($_GET[$key])) {
+            return $this->sanitize($_GET[$key]);
+        }
+        else {
+            return $return;
+        }
+    }
+
+    /**
+     * Return $_POST data from the specified key
+     *
+     * @public
+     * @param String $key
+     * @returns $String || Boolean
+     */
+    public function requestPost($key, $return = false) {
+        if (isset($_POST[$key])) {
+            return $this->sanitize($_POST[$key]);
+        }
+        else {
+            return $return;
+        }
+    }
+
+    /**
+     * Check whether the current request is a valid API request
+     *
+     * @public
+     * @returns Boolean
+     */
+    public function isAPIrequest() {
+        $key = $this->requestPost('api_key');
+        $secret = $this->requestPost('api_secret');
+        if (($key != false && $secret != false) && ($key == $this->config->get('apiKey') && $secret == $this->config->get('apiSecret'))) {
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     /**
@@ -743,7 +794,7 @@ class TinamboBlog {
      * @param String $string
      */
     public function sanitize($string) {
-        return strip_tags($string);
+        return htmlspecialchars(strip_tags($string));
     }
 
     /**
@@ -827,7 +878,7 @@ class TinamboBlog {
      */
     public function login($author, $password) {
         if ($author != '' && $password != '') {
-            if ($this->isAuthor($author) && $password === $this->getAuthKey()) {
+            if ($this->isAuthor($author) && $password == $this->getAuthKey()) {
                 $_SESSION[$this->config->get('sessionName')] = password_hash($this->getAuthKey(), PASSWORD_DEFAULT);
                 return true;
             } else {
@@ -886,14 +937,14 @@ class TinamboTemplate {
     public function getTopMenu() {
         $pages = $this->blog->getPages();
         $out = '';
-        if ($this->blog->config->get('enablePages') === true) {
+        if ($this->blog->config->get('enablePages') == true) {
             $out .= $this->getPagesList('li');
         }
-        if ($this->blog->config->get('enableSearch') === true) {
+        if ($this->blog->config->get('enableSearch') == true) {
             $out .= '<li><a href="' . $this->blog->formatURL('search') . '">' .
                 _L::get('Search') . '</a></li>';
         }
-        if ($this->blog->config->get('enableContact') === true) {
+        if ($this->blog->config->get('enableContact') == true) {
             $out .= '<li><a href="' . $this->blog->formatURL('contact') . '">' .
                 _L::get('Contact') . '</a></li>';
         }
@@ -985,7 +1036,7 @@ class TinamboTemplate {
         if (count($authors) > 1) {
             $out .= '<select class="last" name="author">';
             for ($i = 0; $i < count($authors); $i++) {
-                $out .= '<option ' . ($selected === $authors[$i] ? 'selected="selected"' : '') . 'value="' . $authors[$i] . '">' . $authors[$i] . '</option>';
+                $out .= '<option ' . ($selected == $authors[$i] ? 'selected="selected"' : '') . 'value="' . $authors[$i] . '">' . $authors[$i] . '</option>';
             }
             $out .= '</select>';
         }
@@ -1013,7 +1064,7 @@ class TinamboTemplate {
                     } else {
                         $select = '';
                     }
-                    if (($pages[$i]->getParent() === false) && ($exclude != $pages[$i]->getId())) {
+                    if (($pages[$i]->getParent() == false) && ($exclude != $pages[$i]->getId())) {
                         $out .= '<option' . $select . ' value="' . $pages[$i]->getId() . '">' . $pages[$i]->getTitle() . '</option>';
                         $out .= $this->_getPagesChildren('select', 0, $pages[$i], $exclude);
                     }
@@ -1021,7 +1072,7 @@ class TinamboTemplate {
                 break;
             case 'li':
                 for ($i = 0; $i < count($pages); $i++) {
-                    if ($pages[$i]->getParent() === false && $pages[$i]->isPublished()) {
+                    if ($pages[$i]->getParent() == false && $pages[$i]->isPublished()) {
                         $out .= '<li><a href="' . $this->blog->formatURL('page', $pages[$i]->getId()) . '">' . $pages[$i]->getTitle() . '</a>';
                         $out .= $this->_getPagesChildren('li', 0, $pages[$i]);
                         $out .= '</li>';
@@ -1030,7 +1081,7 @@ class TinamboTemplate {
                 break;
             case 'td':
                 for ($i = 0; $i < count($pages); $i++) {
-                    if ($pages[$i]->getParent() === false) {
+                    if ($pages[$i]->getParent() == false) {
                         $out .= '<tr>
                             <td>' . $pages[$i]->getId() . '</td>
                             <td>' . $pages[$i]->getTitle() . '</td>
@@ -1038,7 +1089,7 @@ class TinamboTemplate {
                             <td>
                                 <a title="' . _L::get('View this Page') . '" class="entypo-upload" href="' . $this->blog->formatURL('page', $pages[$i]->getId()) . '"></a> 
                                 <a title="' . _L::get('Edit this Page') . '" class="entypo-doc-text" href="' . $this->blog->getAdminURL() . '&amp;section=editpage&amp;id=' . $pages[$i]->getId() . '"></a> 
-                                ' . ($this->blog->config->get('enableDeleteFiles') === true ? '<a title="' . _L::get('Delete this Page') . '" onclick="return confirm(\'' . _L::get('Are you sure you want to delete this page?') . '\');" class="entypo-trash" href="' . $this->blog->getAdminURL() . '&amp;section=deletepage&amp;id=' . $pages[$i]->getId() . '"></a>' : '') .
+                                ' . ($this->blog->config->get('enableDeleteFiles') == true ? '<a title="' . _L::get('Delete this Page') . '" onclick="return confirm(\'' . _L::get('Are you sure you want to delete this page?') . '\');" class="entypo-trash" href="' . $this->blog->getAdminURL() . '&amp;section=deletepage&amp;id=' . $pages[$i]->getId() . '"></a>' : '') .
                                 '</td>
                             </tr>';
                         $out .= $this->_getPagesChildren('td', 0, $pages[$i]);
@@ -1057,13 +1108,13 @@ class TinamboTemplate {
      */
     public function getFeedsMenu() {
         $feeds = array();
-        if ($this->blog->config->get('enableRSS') === true) {
+        if ($this->blog->config->get('enableRSS') == true) {
             $feeds[] = '<a href="' . $this->blog->formatURL('rss') . '"><span class="entypo-rss"> ' . _L::get('rss') . '</span></a>';
         }
-        if ($this->blog->config->get('enableATOM') === true) {
+        if ($this->blog->config->get('enableATOM') == true) {
             $feeds[] = '<a href="' . $this->blog->formatURL('atom') . '"><span class="entypo-rss"> ' . _L::get('atom') . '</span></a>';
         }
-        if ($this->blog->isLogin() === true) {
+        if ($this->blog->isLogin() == true) {
             $feeds[] = '<a href="' . $this->blog->formatURL($this->blog->getSlug('editor')) . '"><span class="entypo-feather"> ' . _L::get('editor') . '</span></a>';
         }
         if (count($feeds) > 0) {
@@ -1082,7 +1133,7 @@ class TinamboTemplate {
     private function _getOptionTopMenu() {
         $pages = $this->blog->getPages();
         $out = '<option value="' . $this->blog->formatURL() . '">' . _L::get('Home') . '</option>';
-        if ($this->blog->config->get('enablePages') === true) {
+        if ($this->blog->config->get('enablePages') == true) {
             for ($i = 0; $i < count($pages); $i++) {
                 $out .= '<option value="' . $this->blog->formatURL('page', $pages[$i]->getId()) . '">' . $pages[$i]->getTitle() . '</option>';
             }
@@ -1216,7 +1267,7 @@ class TinamboTemplate {
                     </thead>
                     <tbody>';
                 foreach ($b->config->getAll() as $key => $value) {
-                    if (!is_array($value) && $key !== 'key') {
+                    if (!is_array($value) && $key != 'key') {
                         if (is_bool($value) && $value) {
                             $val = '<span class="entypo-check"></span>';
                         }
@@ -1278,7 +1329,7 @@ class TinamboTemplate {
                             <td>
                                 <a title="' . _L::get('View this Post') . '" class="entypo-upload" href="' . $b->formatURL('post', $posts[$i]->getId()) . '"></a> 
                                 <a title="' . _L::get('Edit this Post') . '" class="entypo-doc-text" href="' . $b->getAdminURL() . '&amp;section=editpost&amp;id=' . $posts[$i]->getId() . '"></a>' .
-                                ($b->config->get('enableDeleteFiles') === true ? '<a title="' . _L::get('Delete this Post') . '" onclick="return confirm(\'' . _L::get('Are you sure you want to delete this post?') . '\');" class="entypo-trash" href="' . $b->getAdminURL() . '&amp;section=deletepost&amp;id=' . $posts[$i]->getId() . '"></a>' : '') . '
+                                ($b->config->get('enableDeleteFiles') == true ? '<a title="' . _L::get('Delete this Post') . '" onclick="return confirm(\'' . _L::get('Are you sure you want to delete this post?') . '\');" class="entypo-trash" href="' . $b->getAdminURL() . '&amp;section=deletepost&amp;id=' . $posts[$i]->getId() . '"></a>' : '') . '
                             </td>
                         </tr>';
                     }
@@ -1344,7 +1395,7 @@ class TinamboTemplate {
             case 'images':
                 $out .= '<header class="entry-header clearfix">
                         <h1 class="entry-title left">' . _L::get('Images') . '</h1>' .
-                        ($b->config->get('enableUpload') === true ? '<p class="buttons"><a class="button entypo-feather" href="' . $b->getAdminURL() . '&amp;section=newimage">' . _L::get('Upload Image') . '</a></p>' : '') . '
+                        ($b->config->get('enableUpload') == true ? '<p class="buttons"><a class="button entypo-feather" href="' . $b->getAdminURL() . '&amp;section=newimage">' . _L::get('Upload Image') . '</a></p>' : '') . '
                 </header>
                 <div class="images clearfix">';
                 $images = $b->getImages();
@@ -1367,14 +1418,14 @@ class TinamboTemplate {
                 $out .= $this->tagHeader(_L::get('Upload Image'));
                 if (isset($_FILES['image'])) {
                     $error = false;
-                    if ($_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+                    if ($_FILES['image']['error'] != UPLOAD_ERR_OK) {
                         $error = true;
                     }
                     $info = getimagesize($_FILES['image']['tmp_name']);
                     if ($info == false) {
                         $error = true;
                     }
-                    if (($info[2] !== IMAGETYPE_GIF) && ($info[2] !== IMAGETYPE_JPEG) && ($info[2] !== IMAGETYPE_PNG)) {
+                    if (($info[2] != IMAGETYPE_GIF) && ($info[2] != IMAGETYPE_JPEG) && ($info[2] != IMAGETYPE_PNG)) {
                         $error = true;
                     }
                     if ($error) {
@@ -1396,7 +1447,7 @@ class TinamboTemplate {
                 break;
             case 'newpost':
                 $out .= $this->tagHeader(_L::get('New Post'));
-                if (isset($_POST['title'])) {
+                if ($b->requestPost('title')) {
                     $post = new TinamboPost($b, $_POST);
                     $filename = $b->cleanup($post->getTitle()) . '.' . $b->config->get('fileExtension');
                     if (file_exists($b->config->get('postsDir') . $filename)) {
@@ -1424,7 +1475,7 @@ class TinamboTemplate {
                     $b->get404();
                 }
                 $out .= $this->tagHeader(_L::get('New Page'));
-                if (isset($_POST['title'])) {
+                if ($b->requestPost('title')) {
                     $post = new TinamboPost($b, $_POST);
                     $filename = $b->cleanup($post->getTitle()) . '.' . $b->config->get('fileExtension');
                     if (file_exists($b->config->get('pagesDir') . $filename)) {
@@ -1453,12 +1504,12 @@ class TinamboTemplate {
                             <input type="text" placeholder="' . _L::get('Your search query') . '" name="search" class="search" />
                             <p>' . $this->tagButton(_L::get('Search')) . '</p>
                         </form>';
-                if (isset($_POST['search'])) {
-                    $search = $b->sanitize($_POST['search']);
+                if ($b->requestPost('search')) {
+                    $search = $b->requestPost('search');
                     if ($search != '') {
                         $out .= '<h1 class="entry-title">' . _L::get('Search Results for ') . '<i>' . $search .'</i></h1>';
                         $results = $b->search($search);
-                        if ($results !== false) {
+                        if ($results != false) {
                             $out .= $results;
                         }
                         else {
@@ -1476,11 +1527,11 @@ class TinamboTemplate {
                 }
                 $out .= '<article class="page">
                     <h1 class="entry-title">' . _L::get('Contact') . '</h1>';
-                if (isset($_POST['content'])) {
-                    $subject = $b->sanitize($_POST['subject']);
-                    $email = $b->sanitize($_POST['email']);
-                    $name = $b->sanitize($_POST['name']);
-                    $message = $b->sanitize($_POST['content']);
+                if ($b->requestPost('content')) {
+                    $subject = $b->requestPost('subject');
+                    $email = $b->requestPost('email');
+                    $name = $b->requestPost('name');
+                    $message = $b->requestPost('content');
                     if ($name != '' && $subject != '' && $email != '' && $message != '') {
                         $_message = _L::get('You received a contact message on') . ' ' . $b->getTitle() . ' ' . _L::get('from') . ' ' . $name . ' <' . $email . '>' . "\r\n\r\n" . $message;
                         $headers = 'From: ' . $from . "\r\n" . 'Reply-To: ' . $b->getEmail() . "\r\n" . 'X-Mailer: Tinambo v' . $b->getVersion();
@@ -1508,7 +1559,7 @@ class TinamboTemplate {
                 </article>';
                 break;
             case 'deletepost':
-                if ($b->config->get('enableDeleteFiles') === true) {
+                if ($b->config->get('enableDeleteFiles') == true) {
                     $post->delete();
                 }
                 header('Location: ' . $b->getAdminURL() . '&section=posts');
@@ -1517,14 +1568,14 @@ class TinamboTemplate {
                 if (!$b->config->get('enablePages')) {
                     $b->get404();
                 }
-                if ($b->config->get('enableDeleteFiles') === true) {
+                if ($b->config->get('enableDeleteFiles') == true) {
                     $post->delete();
                 }
                 header('Location: ' . $b->getAdminURL() . '&section=pages');
                 break;
             case 'editpost':
                 $out .= $this->tagHeader(_L::get('Edit Post'));
-                if (isset($_POST['title'])) {
+                if ($b->requestPost('title')) {
                     $newPost = new TinamboPost($b, $_POST);
                     if (!$newPost->saveAs($post->getFile())) {
                         $out .= $this->message(_L::get('There was an error saving your post file. Please try again!'), true);
@@ -1551,7 +1602,7 @@ class TinamboTemplate {
                     $b->get404();
                 }
                 $out .= $this->tagHeader(_L::get('Edit Page'));
-                if (isset($_POST['title'])) {
+                if ($b->requestPost('title')) {
                     $newPost = new TinamboPost($b, $_POST);
                     if (!$newPost->saveAs($post->getFile())) {
                         $out .= $this->message(_L::get('There was an error saving your page file. Please try again!'), true);
@@ -1653,7 +1704,7 @@ class TinamboTemplate {
                         $noposts = false;
                     }
                 }
-                if ($noposts === true) {
+                if ($noposts == true) {
                     $out .= $this->get('noposts');
                 }
                 break;
@@ -1691,26 +1742,70 @@ class TinamboTemplate {
                 $out .= '</feed>';
                 break;
             case 'json':
-                $data = array(
-                    'blog' => array(
-                        'title' => $b->getTitle(),
-                        'description' => $b->getDescription(),
-                        'url' => $b->formatURL(),
-                        'authors' => $b->getAuthors(),
-                        'software' => 'Tinambo v' . $b->getVersion()
-                    ),
-                    'posts' => array(),
-                    'pages' => array()
-                );
-                $post = $b->getPosts();
-                for ($i = 0; $i < count($post); $i++) {
-                    if ($post[$i]->isPublished()) {
-                        $data['posts'][] = $post[$i]->getArray();
+                if ($b->isAPIrequest()) {
+                    $data = array();
+                    $endpoint = $b->requestPost('endpoint');
+                    switch ($endpoint) {
+                        case 'newpost':
+                            if ($b->requestPost('title')) {
+                                $post = new TinamboPost($b, $_POST);
+                                $filename = $b->cleanup($post->getTitle()) . '.' . $b->config->get('fileExtension');
+                                if (file_exists($b->config->get('postsDir') . $filename)) {
+                                    $data['error'] = _L::get('There is already an existing post with this name! Please choose another.');
+                                } else if (!$post->saveAs($b->config->get('postsDir') . $filename)) {
+                                    $data['error'] = _L::get('There was an error saving your post file. Please try again!');
+                                } else {
+                                    $data['message'] = _L::get('Post successfully created.');
+                                }
+                            }
+                            else {
+                                $data['error'] = _L::get('Invalid method data.');
+                            }
+                            break;
+                        case 'newpage':
+                            if ($b->requestPost('title')) {
+                                $post = new TinamboPost($b, $_POST);
+                                $filename = $b->cleanup($post->getTitle()) . '.' . $b->config->get('fileExtension');
+                                if (file_exists($b->config->get('pagesDir') . $filename)) {
+                                    $data['error'] = _L::get('There is already an existing page with this name! Please choose another.');
+                                } else if (!$post->saveAs($b->config->get('pagesDir') . $filename)) {
+                                    $data['error'] = _L::get('There was an error saving your page file. Please try again!');
+                                }
+                                else {
+                                    $data['message'] = _L::get('Page successfully created.');
+                                }
+                            }
+                            else {
+                                $data['error'] = _L::get('Invalid method data.');
+                            }
+                            break;
+                        default:
+                            $data['error'] = _L::get('Invalid API endpoint.');
+                            break;
                     }
                 }
-                $post = $b->getPages();
-                for ($i = 0; $i < count($post); $i++) {
-                    $data['pages'][] = $post[$i]->getArray();
+                else {
+                    $data = array(
+                        'blog' => array(
+                            'title' => $b->getTitle(),
+                            'description' => $b->getDescription(),
+                            'url' => $b->formatURL(),
+                            'authors' => $b->getAuthors(),
+                            'software' => 'Tinambo v' . $b->getVersion()
+                        ),
+                        'posts' => array(),
+                        'pages' => array()
+                    );
+                    $post = $b->getPosts();
+                    for ($i = 0; $i < count($post); $i++) {
+                        if ($post[$i]->isPublished()) {
+                            $data['posts'][] = $post[$i]->getArray();
+                        }
+                    }
+                    $post = $b->getPages();
+                    for ($i = 0; $i < count($post); $i++) {
+                        $data['pages'][] = $post[$i]->getArray();
+                    }
                 }
                 $out .= json_encode($data);
                 break;
@@ -1743,8 +1838,8 @@ class TinamboTemplate {
                 }
                 break;
             case 'login':
-                if (isset($_POST['author'])) {
-                    if ($b->login($_POST['author'], $_POST['password'])) {
+                if ($b->requestPost('author')) {
+                    if ($b->login($b->requestPost('author'), $b->requestPost('password'))) {
                         header('Location: ' . $b->formatURL($b->getSlug('editor')));
                     } else {
                         $out .= $this->message(_L::get('Unable to authenticate you. Please try again!'), true);
@@ -1779,8 +1874,8 @@ class TinamboTemplate {
                         </div>
                     </div>
                 </article>' .
-                        ($b->config->get('commentsType') === 'facebook' && $b->config->get('facebookAppId') ? '<fb:comments href="' . $post->getPermalink() . '" width="1060"></fb:comments>' : '') .
-                        ($b->config->get('commentsType') === 'disqus' && $b->config->get('disqusId') ? "<div id='disqus_thread'></div><script>var disqus_config=function(){this.page.url='" . $post->getPermalink() . "';this.page.identifier='" . $post->getId() . "';};(function(){var d=document,s=d.createElement('script');s.src='//" . $b->config->get('disqusId') . ".disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s)})();</script><noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>" : '');
+                        ($b->config->get('commentsType') == 'facebook' && $b->config->get('facebookAppId') ? '<fb:comments href="' . $post->getPermalink() . '" width="1060"></fb:comments>' : '') .
+                        ($b->config->get('commentsType') == 'disqus' && $b->config->get('disqusId') ? "<div id='disqus_thread'></div><script>var disqus_config=function(){this.page.url='" . $post->getPermalink() . "';this.page.identifier='" . $post->getId() . "';};(function(){var d=document,s=d.createElement('script');s.src='//" . $b->config->get('disqusId') . ".disqus.com/embed.js';s.setAttribute('data-timestamp',+new Date());(d.head||d.body).appendChild(s)})();</script><noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>" : '');
                 break;
             case 'page':
                 if (!$b->config->get('enablePages')) {
@@ -2365,7 +2460,7 @@ class TinamboCSS {
         switch ($file) {
             case 'site':
                 /* master Tinambo stylesheet */
-                $out .= '/* Tinambo v' . $this->blog->getVersion() . ' https://vox.space */html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{border:0;font-family:inherit;font-size:100%;font-style:inherit;font-weight:inherit;margin:0;outline:0;padding:0;vertical-align:baseline}html{font-size:62.5%;overflow-y:scroll;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%}body{background:#fff}article,aside,details,figcaption,figure,footer,header,main,nav,section{display:block}ol,ul{list-style:none}table{border-collapse:separate;border-spacing:0}caption,th,td{font-weight:normal;text-align:left}blockquote:before,blockquote:after,q:before,q:after{content:""}blockquote,q{quotes:"" ""}a:focus{outline:thin dotted}a:hover,a:active{outline:0}a img{border:0}body,button,input,select,textarea{color:#404040;font-family:"Open Sans",Helvetica,Arial,sans-serif;font-size:17px;line-height:28px}h1,h2,h3,h4,h5,h6{font-weight:bold;font-weight:600;margin:0 0 20px 0;letter-spacing:-1px}h1{font-size:28px}h2{font-size:24px}h3{font-size:20px}h4{font-size:18px}h5{font-size:20px}h6{font-size:16px}hr{clear:both;background-color:#ccc;border:0;height:1px;margin-bottom:20px}p{margin-bottom:20px}ul,ol{margin:0 0 20px 40px}ul{list-style:disc}ol{list-style:decimal}li>ul,li>ol{margin-bottom:0;margin-left:40px}dt{font-weight:bold}dd{margin:0 20px 20px}b,strong{font-weight:bold}dfn,cite,em,i{font-style:italic}blockquote{margin:0 40px}address{margin:0 0 20px}pre{background:#eee;font-family:Courier,monospace;margin-bottom:20px;padding:20px;overflow:auto;max-width:100%}code,kbd,tt,var{font:15px Monaco,Consolas,monospace}abbr,acronym{border-bottom:1px dotted #666;cursor:help}mark,ins{background:#fff9c0;text-decoration:none}sup,sub{font-size:75%;height:0;line-height:0;position:relative;vertical-align:baseline}sup{bottom:1ex}sub{top:.5ex}figure{margin:0}table{margin:0 0 20px;width:100%}th{font-weight:bold}img{height:auto;max-width:100%}button,input,select,textarea{font-size:100%;margin:0;vertical-align:baseline;*vertical-align:middle}button,input{line-height:normal}button,html input[type="button"],input[type="reset"],input[type="submit"],.button{border:1px solid #ccc;border-color:#ccc #ccc #bbb #ccc;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;background:#e6e6e6;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);-moz-box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);color:rgba(0,0,0,.8) !important;cursor:pointer;-webkit-appearance:button;font-size:12px;line-height:1;padding:9px 16px;text-shadow:0 1px 0 rgba(255,255,255,0.8)}button:hover,html input[type="button"]:hover,input[type="reset"]:hover,input[type="submit"]:hover,.button:hover{border-color:#ccc #bbb #aaa #bbb;box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02);-moz-box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02)}button:focus,html input[type="button"]:focus,.button:focus,input[type="reset"]:focus,input[type="submit"]:focus,button:active,html input[type="button"]:active,input[type="reset"]:active,input[type="submit"]:active{border-color:#aaa #bbb #bbb #bbb;box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15);-moz-box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15);-webkit-box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15)}input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}input[type="password"],input[type="text"],textarea{color:#666;border:1px solid #ccc;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px}input[type="password"]:focus,input[type="text"]:focus,textarea:focus{color:#111}input[type="password"],input[type="text"]{padding:3px}textarea{overflow:auto;padding-left:3px;vertical-align:top;width:98%}a,a:visited,.entry-title a:hover,.entry-meta a:hover,.site-footer a:hover{color:#e45348;text-decoration:none}.entry-title a,.entry-content a:hover,a:hover,a:focus,a:active{color:#333}a.more-link:hover{background:#e45348;color:#fff}.site-footer a,.entry-meta a{color:#888}.alignleft{display:inline;float:left;margin-right:20px}.alignright{display:inline;float:right;margin-left:20px}.aligncenter{clear:both;display:block;margin:0 auto}.entry-title{margin-bottom:5px}.page .entry-title,.admin .entry-title{margin-bottom:20px}.admin .left{float:left}.admin .buttons{float:right}#navigation-small{display:none;margin:19px 0 0 19px;border:auto;padding:0;width:auto;font-size:17px}.site-navigation{float:left}.main-navigation ul{margin:0 0 0 15px;display:block;position:relative;float:left}.main-navigation ul li{position:relative}.main-navigation li{list-style-type:none;display:inline-block}.main-navigation a,.main-navigation a:visited,.menu-social-container a,.menu-social-container a:visited{font-size:12px;padding:0 15px;line-height:60px;color:#afafaf}.menu-social-container a:hover,.main-navigation a:hover{color:#333}.main-navigation ul ul{margin:0;box-shadow:0 2px 2px rgba(0,0,0,0.1);-moz-box-shadow:0 2px 2px rgba(0,0,0,0.1);-webkit-box-shadow:0 2px 2px rgba(0,0,0,0.1);display:none;float:left;position:absolute;top:60px;z-index:99999}.main-navigation ul ul ul{left:100%;top:-1px}.main-navigation ul li:hover>ul{display:block}.main-navigation li.current-menu-ancestor>a,.main-navigation li.current_page_item>a,.main-navigation li.current-menu-item>a{color:#333}.main-navigation .sub-menu{width:200px;text-align:left;background:#fff}.main-navigation .sub-menu li{display:block}.main-navigation .sub-menu li:first-child{padding-top:10px}.main-navigation .sub-menu li:last-child{padding-bottom:8px}.main-navigation .sub-menu ul{top:-10px}.main-navigation .sub-menu li:first-child ul{top:-1px}.main-navigation .sub-menu a{text-transform:none;display:block;line-height:18px;padding:10px 20px}.menu-social-container{position:absolute;right:20px}.menu-social-container li{display:inline;font-size:12px;line-height:60px;position:relative}.menu-social-container a{padding-left:15px;padding-right:0}.menu-social-container a:before{position:relative;top:-3px;padding-right:3px}.page-links{clear:both;margin:0 0 30px}.entry-meta{font-size:11px;margin:0 0 25px 0}.featured-image{margin:0 0 30px 0}.featured-image img{box-shadow:0 0 2px 0 rgba(0,0,0,0.3);-moz-box-shadow:0 0 2px 0 rgba(0,0,0,0.3);-webkit-box-shadow:0 0 2px 0 rgba(0,0,0,0.3);width:1060px}.featured-image img,.featured-image a{display:block}.site-content [class*="navigation"]{margin:0 0 20px;overflow:hidden}[class*="navigation"] .nav-previous{float:left;width:50%}[class*="navigation"] .nav-next{float:right;text-align:right;width:50%}.site-header{background:#fff;min-height:60px;box-shadow:0 0 3px 0 rgba(0,0,0,0.3);-moz-box-shadow:0 0 3px 0 rgba(0,0,0,0.3);-webkit-box-shadow:0 0 3px 0 rgba(0,0,0,0.3);margin-bottom:60px}.site-branding{float:left;background:#e55449;padding:0 15px}.site-header .site-branding a{color:#fff;display:block}.site-branding:hover{opacity:.90}.site-header .site-title{font-weight:normal;font-weight:300;margin:0;font-size:19px;line-height:60px;white-space:nowrap;display:block}.site-header .imagelogo img{display:block}.site-header .imagelogo{background:0}.site-header .imagelogo .site-title{line-height:1}.content-width{margin:0 auto;position:relative}.site-content{padding-bottom:20px;word-wrap:break-word}.site-footer{font-size:12px;color:#afafaf;border-top:1px solid #ccc;padding:20px;text-align:center;width:1060px;margin:0 auto}.more-link{text-transform:uppercase;padding:6px 18px;border:2px solid #e45348;border-radius:4px;-moz-border-radius:4px;-webkit-border-radius:4px;display:inline-block;font-size:13px;margin-top:10px}*,*:before,*:after{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box}.screen-reader-text{clip:rect(1px,1px,1px,1px);position:absolute !important}.screen-reader-text:hover,.screen-reader-text:active,.screen-reader-text:focus{background-color:#f1f1f1;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;box-shadow:0 0 2px 2px rgba(0,0,0,0.6);-moz-box-shadow:0 0 2px 2px rgba(0,0,0,0.6);-webkit-box-shadow:0 0 2px 2px rgba(0,0,0,0.6);clip:auto !important;color:#21759b;display:block;font-size:14px;font-weight:bold;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}.clear:before,.clear:after,[class*="content"]:before,[class*="content"]:after,[class*="site"]:before,[class*="site"]:after{content:"";display:table}.clear:after,[class*="content"]:after,[class*="site"]:after{clear:both}.content-width{width:1100px;padding:0 20px}@media only screen and (min-width:960px) and (max-width:1199px){.content-width{width:960px}}@media only screen and (min-width:768px) and (max-width:959px){.content-width{width:748px}}@media only screen and (max-width:767px){.main-navigation ul{display:none}.menu-social-container{display:none}.content-width,.site-footer{width:auto}.admin textarea{width:100%!important}.menu-social-container ul{margin:15px 0 0 0;text-align:center}#navigation-small{display:inline;display:inline-block}}@media only screen and (max-width:480px){#promo-wrap .promo-content{font-size:23px;line-height:33px}.column-grid .column{width:100%;display:block;float:none;clear:both}.hidemobile{display:none}}.login input[type=text],.contact input[type=text]{width:30%;margin:0 10px 10px 0}.contact textarea{margin-bottom:20px;resize:none}[class*="entypo-"]:before{padding:0 5px 0 5px;font-family:"entypo",sans-serif}.social{margin:20px 0;padding-top:10px}.social a{font-size:28px}.tinambo{font-family:"Mystery Quest"}article.excerpt{margin-bottom:30px}.greet{margin:0 0 20px 0;font-size:28px;text-align:right}.entry-meta span{margin-right:10px}.admin th.small{width:40px}.admin section p{line-height:26px}tr:nth-child(even){background-color:#fafafa}tr:nth-child(odd){background-color:#fff}tr:hover{background-color:#ededed}td,th{padding:4px 10px;text-align:left}th{background-color:#e55449;color:#fff}th:last-child,td:last-child{font-size:26px;text-align:center;width:130px}td span{color:#e55449}.admin input[type="text"],input.search,.admin select{font-size:20px;margin:0 10px 10px 0;width:522px;padding:5px;border:1px solid #b6b6b6}.admin .last{margin-right:0 !important}.admin textarea{font-size:20px;height:500px;resize:none;padding:5px;border:1px solid #b6b6b6;width:1060px}.admin .images div img{vertical-align:middle;max-height:147px;max-width:147px}.admin .images span.helper{display:inline-block;vertical-align:middle}.admin .images>div{position:relative;text-align:center;width:168px;height:168px;border:1px solid #b6b6b6;float:left;margin:0 8px 8px 0;padding:10px;background-color:#fff}.admin .images>div .imagepath{border-radius:0;position:absolute;width:168px;font-size:12px;bottom:-11px;left:-1px}.admin .images>div:hover{background-color:#f8f8f8}.admin th.small{width:40px}form label{margin-right:10px}input[type=file]{width:230px}.clearfix:after{content:".";display:block;clear:both;visibility:hidden;line-height:0;height:0}* html .clearfix{height:1%}.admin form p{margin:20px 0}.message{padding:20px;margin:10px 0}.message.error{background-color:#ffafc1}.message.info{background-color:#aed8be}.key{color:#fff;padding:0 10px}.key.ok{background-color:#8fd800}.key.notok{background-color:#ff6e98}.admin .images>div{position:relative}.admin .images .controls{position:absolute;width:32px;height:32px;background-color:#fff;border:1px solid #b6b6b6;display:none}.admin .images .preview{top:0;left:0;border-top:0;border-left:0}.admin .images .picozu{top:0;right:0;border-top:0;border-right:0}.admin .images>div:hover .controls{display:block}' . "\n";
+                $out .= '/* Tinambo v' . $this->blog->getVersion() . ' https://vox.space */html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{border:0;font-family:inherit;font-size:100%;font-style:inherit;font-weight:inherit;margin:0;outline:0;padding:0;vertical-align:baseline}html{font-size:62.5%;overflow-y:scroll;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%}body{background:#fff}article,aside,details,figcaption,figure,footer,header,main,nav,section{display:block}ol,ul{list-style:none}table{border-collapse:separate;border-spacing:0}caption,th,td{font-weight:normal;text-align:left}blockquote:before,blockquote:after,q:before,q:after{content:""}blockquote,q{quotes:"" ""}a:focus{outline:thin dotted}a:hover,a:active{outline:0}a img{border:0}body,button,input,select,textarea{color:#404040;font-family:"Open Sans",Helvetica,Arial,sans-serif;font-size:17px;line-height:28px}h1,h2,h3,h4,h5,h6{font-weight:bold;font-weight:600;margin:0 0 20px 0;letter-spacing:-1px}h1{font-size:28px}h2{font-size:24px}h3{font-size:20px}h4{font-size:18px}h5{font-size:20px}h6{font-size:16px}hr{clear:both;background-color:#ccc;border:0;height:1px;margin-bottom:20px}p{margin-bottom:20px}ul,ol{margin:0 0 20px 40px}ul{list-style:disc}ol{list-style:decimal}li>ul,li>ol{margin-bottom:0;margin-left:40px}dt{font-weight:bold}dd{margin:0 20px 20px}b,strong{font-weight:bold}dfn,cite,em,i{font-style:italic}blockquote{margin:0 40px}address{margin:0 0 20px}pre{background:#eee;font-family:Courier,monospace;margin-bottom:20px;padding:20px;overflow:auto;max-width:100%}code,kbd,tt,var{font:15px Monaco,Consolas,monospace}abbr,acronym{border-bottom:1px dotted #666;cursor:help}mark,ins{background:#fff9c0;text-decoration:none}sup,sub{font-size:75%;height:0;line-height:0;position:relative;vertical-align:baseline}sup{bottom:1ex}sub{top:.5ex}figure{margin:0}table{margin:0 0 20px;width:100%}th{font-weight:bold}img{height:auto;max-width:100%}button,input,select,textarea{font-size:100%;margin:0;vertical-align:baseline;*vertical-align:middle}button,input{line-height:normal}button,html input[type="button"],input[type="reset"],input[type="submit"],.button{border:1px solid #ccc;border-color:#ccc #ccc #bbb #ccc;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;background:#e6e6e6;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);-moz-box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);color:rgba(0,0,0,.8) !important;cursor:pointer;-webkit-appearance:button;font-size:12px;line-height:1;padding:9px 16px;text-shadow:0 1px 0 rgba(255,255,255,0.8)}button:hover,html input[type="button"]:hover,input[type="reset"]:hover,input[type="submit"]:hover,.button:hover{border-color:#ccc #bbb #aaa #bbb;box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02);-moz-box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02)}button:focus,html input[type="button"]:focus,.button:focus,input[type="reset"]:focus,input[type="submit"]:focus,button:active,html input[type="button"]:active,input[type="reset"]:active,input[type="submit"]:active{border-color:#aaa #bbb #bbb #bbb;box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15);-moz-box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15);-webkit-box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15)}input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}input[type="password"],input[type="text"],textarea{color:#666;border:1px solid #ccc;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px}input[type="password"]:focus,input[type="text"]:focus,textarea:focus{color:#111}input[type="password"],input[type="text"]{padding:3px}textarea{overflow:auto;padding-left:3px;vertical-align:top;width:98%}a,a:visited,.entry-title a:hover,.entry-meta a:hover,.site-footer a:hover{color:#e45348;text-decoration:none}.entry-title a,.entry-content a:hover,a:hover,a:focus,a:active{color:#333}a.more-link:hover{background:#e45348;color:#fff}.site-footer a,.entry-meta a{color:#888}.alignleft{display:inline;float:left;margin-right:20px}.alignright{display:inline;float:right;margin-left:20px}.aligncenter{clear:both;display:block;margin:0 auto}.entry-title{margin-bottom:5px}.page .entry-title,.admin .entry-title{margin-bottom:20px}.admin .left{float:left}.admin .buttons{float:right}#navigation-small{display:none;margin:19px 0 0 19px;border:auto;padding:0;width:auto;font-size:17px}.site-navigation{float:left}.main-navigation ul{margin:0 0 0 15px;display:block;position:relative;float:left}.main-navigation ul li{position:relative}.main-navigation li{list-style-type:none;display:inline-block}.main-navigation a,.main-navigation a:visited,.menu-social-container a,.menu-social-container a:visited{font-size:12px;padding:0 15px;line-height:60px;color:#afafaf}.menu-social-container a:hover,.main-navigation a:hover{color:#333}.main-navigation ul ul{margin:0;box-shadow:0 2px 2px rgba(0,0,0,0.1);-moz-box-shadow:0 2px 2px rgba(0,0,0,0.1);-webkit-box-shadow:0 2px 2px rgba(0,0,0,0.1);display:none;float:left;position:absolute;top:60px;z-index:99999}.main-navigation ul ul ul{left:100%;top:-1px}.main-navigation ul li:hover>ul{display:block}.main-navigation li.current-menu-ancestor>a,.main-navigation li.current_page_item>a,.main-navigation li.current-menu-item>a{color:#333}.main-navigation .sub-menu{width:200px;text-align:left;background:#fff}.main-navigation .sub-menu li{display:block}.main-navigation .sub-menu li:first-child{padding-top:10px}.main-navigation .sub-menu li:last-child{padding-bottom:8px}.main-navigation .sub-menu ul{top:-10px}.main-navigation .sub-menu li:first-child ul{top:-1px}.main-navigation .sub-menu a{text-transform:none;display:block;line-height:18px;padding:10px 20px}.menu-social-container{position:absolute;right:20px}.menu-social-container li{display:inline;font-size:12px;line-height:60px;position:relative}.menu-social-container a{padding-left:15px;padding-right:0}.menu-social-container a:before{position:relative;top:-3px;padding-right:3px}.page-links{clear:both;margin:0 0 30px}.entry-meta{font-size:11px;margin:0 0 25px 0}.featured-image{margin:0 0 30px 0}.featured-image img{box-shadow:0 0 2px 0 rgba(0,0,0,0.3);-moz-box-shadow:0 0 2px 0 rgba(0,0,0,0.3);-webkit-box-shadow:0 0 2px 0 rgba(0,0,0,0.3);width:1060px}.featured-image img,.featured-image a{display:block}.site-content [class*="navigation"]{margin:0 0 20px;overflow:hidden}[class*="navigation"] .nav-previous{float:left;width:50%}[class*="navigation"] .nav-next{float:right;text-align:right;width:50%}.site-header{background:#fff;min-height:60px;box-shadow:0 0 3px 0 rgba(0,0,0,0.3);-moz-box-shadow:0 0 3px 0 rgba(0,0,0,0.3);-webkit-box-shadow:0 0 3px 0 rgba(0,0,0,0.3);margin-bottom:60px}.site-branding{float:left;background:#e55449;padding:0 15px}.site-header .site-branding a{color:#fff;display:block}.site-branding:hover{opacity:.90}.site-header .site-title{font-weight:normal;font-weight:300;margin:0;font-size:19px;line-height:60px;white-space:nowrap;display:block}.site-header .imagelogo img{display:block}.site-header .imagelogo{background:0}.site-header .imagelogo .site-title{line-height:1}.content-width{margin:0 auto;position:relative}.site-content{padding-bottom:20px;word-wrap:break-word}.site-footer{font-size:12px;color:#afafaf;border-top:1px solid #ccc;padding:20px;text-align:center;width:1060px;margin:0 auto}.more-link{text-transform:uppercase;padding:6px 18px;border:2px solid #e45348;border-radius:4px;-moz-border-radius:4px;-webkit-border-radius:4px;display:inline-block;font-size:13px;margin-top:10px}*,*:before,*:after{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box}.screen-reader-text{clip:rect(1px,1px,1px,1px);position:absolute !important}.screen-reader-text:hover,.screen-reader-text:active,.screen-reader-text:focus{background-color:#f1f1f1;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;box-shadow:0 0 2px 2px rgba(0,0,0,0.6);-moz-box-shadow:0 0 2px 2px rgba(0,0,0,0.6);-webkit-box-shadow:0 0 2px 2px rgba(0,0,0,0.6);clip:auto !important;color:#21759b;display:block;font-size:14px;font-weight:bold;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}.clear:before,.clear:after,[class*="content"]:before,[class*="content"]:after,[class*="site"]:before,[class*="site"]:after{content:"";display:table}.clear:after,[class*="content"]:after,[class*="site"]:after{clear:both}.content-width{width:1100px;padding:0 20px}@media only screen and (min-width:960px) and (max-width:1199px){.content-width{width:960px}}@media only screen and (min-width:768px) and (max-width:959px){.content-width{width:748px}}@media only screen and (max-width:767px){.main-navigation ul{display:none}.menu-social-container{display:none}.content-width,.site-footer{width:auto}.admin textarea{width:100%!important}.menu-social-container ul{margin:15px 0 0 0;text-align:center}#navigation-small{display:inline;display:inline-block}}@media only screen and (max-width:480px){#promo-wrap .promo-content{font-size:23px;line-height:33px}.column-grid .column{width:100%;display:block;float:none;clear:both}.hidemobile{display:none}}.login input[type=text],.contact input[type=text]{width:30%;margin:0 10px 10px 0}.contact textarea{margin-bottom:20px;resize:none}[class*="entypo-"]:before{padding:0 5px 0 5px;font-family:"entypo",sans-serif}.social{margin:20px 0;padding-top:10px}.social a{font-size:28px}.tinambo{font-family:"Mystery Quest"}article.excerpt{margin-bottom:30px}.greet{margin:0 0 20px 0;font-size:28px;text-align:right}.entry-meta span{margin-right:10px}.admin th.small{width:40px}.admin section p{line-height:26px}tr:nth-child(even){background-color:#fafafa}tr:nth-child(odd){background-color:#fff}tr:hover{background-color:#ededed}td,th{padding:4px 10px;text-align:left}th{background-color:#e55449;color:#fff}th:last-child,td:last-child{font-size:26px;text-align:center;width:140px}td span{color:#e55449}.admin input[type="text"],input.search,.admin select{font-size:20px;margin:0 10px 10px 0;width:522px;padding:5px;border:1px solid #b6b6b6}.admin .last{margin-right:0 !important}.admin textarea{font-size:20px;height:500px;resize:none;padding:5px;border:1px solid #b6b6b6;width:1060px}.admin .images div img{vertical-align:middle;max-height:147px;max-width:147px}.admin .images span.helper{display:inline-block;vertical-align:middle}.admin .images>div{position:relative;text-align:center;width:168px;height:168px;border:1px solid #b6b6b6;float:left;margin:0 8px 8px 0;padding:10px;background-color:#fff}.admin .images>div .imagepath{border-radius:0;position:absolute;width:168px;font-size:12px;bottom:-11px;left:-1px}.admin .images>div:hover{background-color:#f8f8f8}.admin th.small{width:40px}form label{margin-right:10px}input[type=file]{width:230px}.clearfix:after{content:".";display:block;clear:both;visibility:hidden;line-height:0;height:0}* html .clearfix{height:1%}.admin form p{margin:20px 0}.message{padding:20px;margin:10px 0}.message.error{background-color:#ffafc1}.message.info{background-color:#aed8be}.key{color:#fff;padding:0 10px}.key.ok{background-color:#8fd800}.key.notok{background-color:#ff6e98}.admin .images>div{position:relative}.admin .images .controls{position:absolute;width:32px;height:32px;background-color:#fff;border:1px solid #b6b6b6;display:none}.admin .images .preview{top:0;left:0;border-top:0;border-left:0}.admin .images .picozu{top:0;right:0;border-top:0;border-right:0}.admin .images>div:hover .controls{display:block}' . "\n";
                 if ($this->blog->config->get('picozuKey')) {
                     $out .= '/* ClassyPicozu v1.0.1 https://vox.space */.picozu-lightbox-move *{-webkit-box-sizing:content-box;-moz-box-sizing:content-box;box-sizing:content-box}.picozu-lightbox-overlay{background:#2b2b2b;-webkit-tap-highlight-color:rgba(0,0,0,0)}.picozu-lightbox{position:relative;padding:0;border:7px solid #2b2b2b;border-radius:10px;-o-border-radius:10px;-ms-border-radius:10px;-moz-border-radius:10px;-webkit-border-radius:10px}.picozu-lightbox-html{z-index:7000;position:relative;border:0;padding:0;vertical-align:top;-webkit-overflow-scrolling:touch}.picozu-lightbox-html iframe{vertical-align:top;display:block}.picozu-lightbox .background{position:absolute;top:0;left:0;z-index:6999;float:left;padding:0}.picozu-lightbox.mode-image .lightbox-html{z-index:6998;padding:0}.picozu-lightbox.mode-html .background{background:#fff}.picozu-lightbox.mode-html .lightbox-html{overflow:auto}.picozu-lightbox .close{background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAAdBAMAAADm/gmrAAAAMFBMVEUAAABAMTgrKyv/cbErKyv/cbErKyv////+4+7U1NQ/Pz//nMhqamr/udiPj4+ysrICPbt1AAAABXRSTlMAI+qsrAlLTzEAAAEJSURBVHhetdM/SgNBFMfx8QZBsLeytrFXC2ubgYVlQSymWJakkm/ibpIqDOQAWcgBhD1A2BtkTxC8gd5AW3fAeTNbbaO/9jPvT/FGnd0byfOdUjc65FqpcwfikwsdZ6IeTJxbX+zLrwZ8qQd5VGaQp7/nrjKm4Oi5LbVOOQjbnjq2nump5cVzDtvc8ircE4HNJ4sGPjy/M0/gJDwDWMtqGcA82rwGdsLaApuIG1i8BU5cccRTWJnAGSxj7oBj4BY4BC4AKuEUoAzcQN0P95yAjTbPa9Yz2Hu2LDPYeJ7CztSsftmRe+K5cI0b4dQ1Tihl9vfeTfiS5q6vPf37tYxc6sidj/ySkT/2A1vvTc0qveHvAAAAAElFTkSuQmCC) no-repeat 0 0;position:absolute;top:12px;right:-26px;opacity:1;width:29px;height:29px}.picozu-lightbox .close:hover{background-position:-30px 0}.picozu-lightbox.mode-image .close{right:14px;z-index:7002;opacity:.7}.picozu-lightbox .close span{display:none}.picozu-lightbox.mode-image:hover .close{opacity:.9}.picozu-lightbox .loader{position:relative;display:block;height:46px;width:46px;margin:33% auto;border-radius:50%;-o-border-radius:50%;-ms-border-radius:50%;-moz-border-radius:50%;-webkit-border-radius:50%;background-color:#ddd;overflow:hidden}.picozu-lightbox .loader:after{content:"";position:absolute;top:9px;left:9px;display:block;height:28px;width:28px;background-color:#fff;border-radius:50%;-o-border-radius:50%;-ms-border-radius:50%;-moz-border-radius:50%;-webkit-border-radius:50%}.picozu-lightbox .loader>span{position:absolute;height:100%;width:50%;overflow:hidden}.picozu-lightbox .left{left:0}.picozu-lightbox .right{left:50%}.picozu-lightbox .anim{position:absolute;left:100%;top:0;height:100%;width:100%;border-radius:999px;background-color:#ed1978;opacity:.7;-webkit-animation:ui-spinner-rotate-left 5s infinite;animation:ui-spinner-rotate-left 5s infinite;-webkit-transform-origin:0 50% 0;transform-origin:0 50% 0}.picozu-lightbox .left .anim{border-bottom-left-radius:0;border-top-left-radius:0}.picozu-lightbox .right .anim{border-bottom-right-radius:0;border-top-right-radius:0;left:-100%;-webkit-transform-origin:100% 50% 0;transform-origin:100% 50% 0}@keyframes ui-spinner-rotate-right{0{transform:rotate(0)}25%{transform:rotate(180deg)}50%{transform:rotate(180deg)}75%{transform:rotate(360deg)}100%{transform:rotate(360deg)}}@keyframes ui-spinner-rotate-left{0{transform:rotate(0)}25%{transform:rotate(0)}50%{transform:rotate(180deg)}75%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}@-webkit-keyframes ui-spinner-rotate-right{0{-webkit-transform:rotate(0)}25%{-webkit-transform:rotate(180deg)}50%{-webkit-transform:rotate(180deg)}75%{-webkit-transform:rotate(360deg)}100%{-webkit-transform:rotate(360deg)}}@-webkit-keyframes ui-spinner-rotate-left{0{-webkit-transform:rotate(0)}25%{-webkit-transform:rotate(0)}50%{-webkit-transform:rotate(180deg)}75%{-webkit-transform:rotate(180deg)}100%{-webkit-transform:rotate(360deg)}}' . "\n";
                 }
@@ -2477,7 +2572,9 @@ class _L {
         'your password' => '',
         'Unfortunately, you are not authorized to perform this request.' => '',
         'Not Authorized' => '',
-        'so you will need to do that before you can start using your website.' => ''
+        'so you will need to do that before you can start using your website.' => '',
+        'Invalid API endpoint.' => '',
+        'Invalid method data.' => ''
     );
 
     /**
@@ -2488,7 +2585,7 @@ class _L {
      * @param String $key
      */
     public static function get($key) {
-        return ((isset(self::$lines[$key]) && self::$lines[$key] !== '') ? self::$lines[$key] : $key);
+        return ((isset(self::$lines[$key]) && self::$lines[$key] != '') ? self::$lines[$key] : $key);
     }
 
 }

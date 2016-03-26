@@ -32,9 +32,9 @@ commented as well as possible, make sure you only change what you need and
 understand the implications. Changing the `key` to something different than
 `false` is required before you can login to the admin panel.
 
-@name Tinambo
-@package Tinambo
-@author Marius Stanciu - Sergiu <marius@vox.space>
-@website https://vox.space
-@version 2.0.0
-@license Public Domain https://vox.space/LICENSE
+- @name Tinambo
+- @package Tinambo
+- @author Marius Stanciu - Sergiu <marius@vox.space>
+- @website https://vox.space
+- @version 2.0.0
+- @license Public Domain https://vox.space/LICENSE
