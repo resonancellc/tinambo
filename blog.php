@@ -45,7 +45,8 @@ class TinamboConfig {
         'title' => 'My Blog',
         /* your blog description */
         'description' => 'Not just another blog',
-        /* your e-mail address, used for the contact form */
+        /* your e-mail address, used for the contact form, not visible
+         * anywhere to your visitors */
         'email' => 'you@yourdomain.com',
         /* relative path to the folder containing post files */
         'postsDir' => 'posts/',
@@ -53,9 +54,9 @@ class TinamboConfig {
         'pagesDir' => 'pages/',
         /* relative path to the folder containing blog images */
         'imagesDir' => 'images/',
-        /* number of posts per page to display on blog frontpage */
+        /* number of posts per page to display on blog homepage */
         'postsPerPage' => 5,
-        /* list of blog authors, the first name is the default writer */
+        /* list of blog authors, the first name is the default author */
         'authors' => array('Me'),
         /* Facebook application id or false to disable Facebook integration */
         'facebookAppId' => false,
@@ -65,33 +66,35 @@ class TinamboConfig {
          * add the folder name if the blog resides inside a folder, for example:
          * http://www.mydomain.com/blog/ */
         'domain' => 'http://localhost/tinambo/',
-        /* date format */
+        /* date format for blog posts */
         'dateFormat' => 'd-m-Y H:i',
         /* enable the pages system, excluding contact page */
         'enablePages' => true,
         /* whether the blog runs in embed mode, which strips the HTML header
          * and footer tags, including the stylesheet, meta tags, jQuery, icon
          * fonts, etc. Only if you know what you are doing, you will need to add
-         * the required tags to your own template that embeds the blog.
-         */
+         * the required tags to your own template that embeds the blog */
         'embed' => false,
-        /* session name for authentication */
+        /* session name for authentication, if you change this you need to
+         * authenticate again */
         'sessionName' => 'tinambo_sess',
         /* enable debugging mode, which does not minify the HTML code */
         'debug' => true,
-        /* enable visitors to search through the posts/pages */
+        /* enable visitors to search through the posts */
         'enableSearch' => true,
-        /* enable file upload */
+        /* enable blog image upload */
         'enableUpload' => true,
         /* enable JSON output */
         'enableJSON' => true,
+        /* if you want the JSON endpoint to behave like an API, for example
+         * allow you to create posts or pages remotely from a mobile or
+         * desktop app, you will need to configure the two settings below
+         * and make them really unique, at least 8 random alphanumeric chars */
         'apiKey' => false,
         'apiSecret' => false,
         /* enable ATOM feeds */
         'enableATOM' => true,
-        /* date format for posts */
-        'dateFormat' => 'd-m-Y H:i',
-        /* enable the contact form/page */
+        /* enable the contact form page */
         'enableContact' => true,
         /* Picozu API key if you want image editing functions in blog editor
          * or false to disable it */
@@ -100,7 +103,7 @@ class TinamboConfig {
         'enableRSS' => true,
         /* enable loading of external libraries from the libs/ directory */
         'enableLibs' => false,
-        /* enable editors to delete posts */
+        /* enable authors to actually delete post files */
         'enableDeleteFiles' => true,
         /* enable pretty URLs, requires URL rewriting enabled in your web
          * server and a .htaccess file */
@@ -114,9 +117,9 @@ class TinamboConfig {
         /* type of the comments form, can be 'facebook' for Facebook comments
          * (needs a facebookAppId), 'disqus' for Disqus comments (needs a
          * disqusId) or false to have comments disabled */
-        'commentsType' =>'disqus',
+        'commentsType' => false,
         /* Disqus forum id or false to disable Disqus integration */
-        'disqusId' => 'tinambo',
+        'disqusId' => false,
         /* your admin area slug, change this if you want more security */
         'slugs' => array(
             'editor' => 'panel',
