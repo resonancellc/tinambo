@@ -1821,7 +1821,7 @@ class TinamboTemplate {
                                 }
                             }
                             else {
-                                $data['error'] = _L::get('Invalid method data.`');
+                                $data['error'] = _L::get('Invalid method data.');
                             }
                             break;
                         default:
