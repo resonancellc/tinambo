@@ -582,7 +582,7 @@ class TinamboBlog {
         $hasResults = false;
         $out = '<ul>';
         for ($i = 0; $i < count($posts); $i++) {
-            if ($posts[$i]->isPublished() && strpos($posts[$i]->getContent(), $query) != false) {
+            if ($posts[$i]->isPublished() && stripos($posts[$i]->getContent(), $query) != false) {
                 $out .= '<li><a href="' . $posts[$i]->getPermalink() . '">' . $posts[$i]->getTitle() . '</a></li>';
                 $hasResults = true;
             }
@@ -1547,7 +1547,7 @@ class TinamboTemplate {
                             <input type="text" placeholder="' . _L::get('Your search query') . '" name="search" class="search" />
                             <p>' . $this->tagButton(_L::get('Search')) . '</p>
                         </form>';
-                if ($b->requestPost('search')) {
+                if ($b->requestPost('search') && strlen($b->requestPost('search')) > 3) {
                     $search = $b->requestPost('search');
                     if ($search != '') {
                         $out .= '<h1 class="entry-title">' . _L::get('Search Results for ') . '<i>' . $search .'</i></h1>';
