@@ -127,7 +127,7 @@ class TinamboConfig {
         ),
         /* your auth key, CHANGE THIS to something only you know, and
          * change it at least monthly */
-        'key' => false,
+        'key' => '1',
     );
 
     /**
@@ -423,7 +423,11 @@ class TinamboBlog {
      */
     public function formatURL($mode = null, $id = null, $page = null) {
         if ($this->config->get('rewriteURLs') == true) {
-            return $this->config->get('domain') . $this->getSlug('blog') . ($mode != null ? '/' . $mode : '') . ($id != null ? '/' . $id : '') . ($page != null ? '/' . $page : '');
+            return $this->config->get('domain') .
+                $this->getSlug('blog') .
+                ($mode != null ? '/' . $mode : '') .
+                ($id != null ? '/' . $id : '') .
+                ($page != null ? '/' . $page : '');
         } else {
             $str = '';
             $str .= ($mode != null ? '?mode=' . $mode : '');
@@ -619,18 +623,15 @@ class TinamboBlog {
                 if (file_exists((($isPage == true) ? $this->config->get('pagesDir') : $this->config->get('postsDir')) . $filename)) {
                     $data['error'] = _L::get('There is already an existing ' . (($isPage == true) ? 'page' : 'post') . ' with this name! Please choose another.');
                     $data['result'] = false;
-                }
-                else if (!$post->saveAs((($isPage == true) ? $this->config->get('pagesDir') : $this->config->get('postsDir')) . $filename)) {
+                } else if (!$post->saveAs((($isPage == true) ? $this->config->get('pagesDir') : $this->config->get('postsDir')) . $filename)) {
                     $data['error'] = _L::get('There was an error saving your ' . (($isPage == true) ? 'page' : 'post') . ' file. Please try again!');
                     $data['result'] = false;
-                }
-                else {
+                } else {
                     $data['message'] = _L::get((($isPage == true) ? 'Page' : 'Post') . ' successfully created.');
                     $data['result'] = true;
                 }
             }
-        }
-        else {
+        } else {
             $data['error'] = _L::get('Invalid method data.');
             $data['result'] = false;
         }
@@ -783,8 +784,7 @@ class TinamboBlog {
     public function requestGet($key, $return = false) {
         if (isset($_GET[$key])) {
             return $this->sanitize($_GET[$key]);
-        }
-        else {
+        } else {
             return $return;
         }
     }
@@ -799,8 +799,7 @@ class TinamboBlog {
     public function requestPost($key, $return = false) {
         if (isset($_POST[$key])) {
             return $this->sanitize($_POST[$key]);
-        }
-        else {
+        } else {
             return $return;
         }
     }
@@ -816,8 +815,7 @@ class TinamboBlog {
         $secret = $this->requestPost('api_secret');
         if (($key != false && $secret != false) && ($key == $this->config->get('apiKey') && $secret == $this->config->get('apiSecret'))) {
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
@@ -1323,11 +1321,9 @@ class TinamboTemplate {
                     if (!is_array($value) && $key != 'key') {
                         if (is_bool($value) && $value) {
                             $val = '<span class="entypo-check"></span>';
-                        }
-                        else if (is_bool($value) && !$value) {
+                        } else if (is_bool($value) && !$value) {
                             $val = '<span class="entypo-block"></span>';
-                        }
-                        else {
+                        } else {
                             $val = $value;
                         }
                         $out .= '<tr>
@@ -1504,8 +1500,7 @@ class TinamboTemplate {
                     $result = $b->savePostData();
                     if ($result['result'] == true) {
                         $out .= $this->message($result['message']);
-                    }
-                    else {
+                    } else {
                         $out .= $this->message($result['error'], true);
                     }
                 }
@@ -1530,8 +1525,7 @@ class TinamboTemplate {
                     $result = $b->savePostData(true);
                     if ($result['result'] == true) {
                         $out .= $this->message($result['message']);
-                    }
-                    else {
+                    } else {
                         $out .= $this->message($result['error'], true);
                     }
                 }
@@ -1560,8 +1554,7 @@ class TinamboTemplate {
                         $results = $b->search($search);
                         if ($results != false) {
                             $out .= $results;
-                        }
-                        else {
+                        } else {
                             $out .= $this->message(_L::get('There are no results for the specified search term.'), false);
                         }
                     } else {
@@ -1629,8 +1622,7 @@ class TinamboTemplate {
                     if ($result['result'] == true) {
                         $out .= $this->message($result['message']);
                         $post = $result['post'];
-                    }
-                    else {
+                    } else {
                         $out .= $this->message($result['error'], true);
                     }
                 }
@@ -1657,8 +1649,7 @@ class TinamboTemplate {
                     if ($result['result'] == true) {
                         $out .= $this->message($result['message']);
                         $post = $result['post'];
-                    }
-                    else {
+                    } else {
                         $out .= $this->message($result['error'], true);
                     }
                 }
@@ -1802,8 +1793,7 @@ class TinamboTemplate {
                             $result = $b->savePostData(($endpoint == 'newpage') ? true : false);
                             if ($result['result'] == true) {
                                 $data['message'] = $result['message'];
-                            }
-                            else {
+                            } else {
                                 $data['error'] = $result['error'];
                             }
                             break;
@@ -1815,12 +1805,10 @@ class TinamboTemplate {
                                 $result = $b->savePostData(($endpoint == 'editpage') ? true : false, true, $postData);
                                 if ($result['result'] == true) {
                                     $data['message'] = $result['message'];
-                                }
-                                else {
+                                } else {
                                     $data['error'] = $result['error'];
                                 }
-                            }
-                            else {
+                            } else {
                                 $data['error'] = _L::get('Invalid method data.');
                             }
                             break;
