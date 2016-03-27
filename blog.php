@@ -588,6 +588,56 @@ class TinamboBlog {
     }
 
     /**
+     * Save incoming $_POST data into an actual blog post or page
+     *
+     * @public
+     * @param Boolean $isPage
+     * @returns Array
+     */
+    public function savePostData($isPage = false, $update = false, $oldPost = false) {
+        $data = array(
+            'error' => false,
+            'result' => false,
+            'post' => false,
+            'message' => false
+        );
+        if ($this->requestPost('title')) {
+            $post = new TinamboPost($this, $_POST, ($isPage == true) ? true : false);
+            $filename = $this->cleanup($post->getTitle()) . '.' . $this->config->get('fileExtension');
+            if ($update == true && $oldPost != false) {
+                $newPost = new TinamboPost($this, $_POST, ($isPage == true) ? true : false);
+                if (!$newPost->saveAs($oldPost->getFile())) {
+                    $data['error'] = _L::get('There was an error saving your ' . (($isPage == true) ? 'page' : 'post') . ' file. Please try again!');
+                    $data['result'] = false;
+                } else {
+                    $data['message'] = _L::get((($isPage == true) ? 'Page' : 'Post') . ' successfully updated.');
+                    $data['result'] = true;
+                    $data['post'] = $newPost;
+                }
+            }
+            else {
+                if (file_exists((($isPage == true) ? $this->config->get('pagesDir') : $this->config->get('postsDir')) . $filename)) {
+                    $data['error'] = _L::get('There is already an existing ' . (($isPage == true) ? 'page' : 'post') . ' with this name! Please choose another.');
+                    $data['result'] = false;
+                }
+                else if (!$post->saveAs((($isPage == true) ? $this->config->get('pagesDir') : $this->config->get('postsDir')) . $filename)) {
+                    $data['error'] = _L::get('There was an error saving your ' . (($isPage == true) ? 'page' : 'post') . ' file. Please try again!');
+                    $data['result'] = false;
+                }
+                else {
+                    $data['message'] = _L::get((($isPage == true) ? 'Page' : 'Post') . ' successfully created.');
+                    $data['result'] = true;
+                }
+            }
+        }
+        else {
+            $data['error'] = _L::get('Invalid method data.');
+            $data['result'] = false;
+        }
+        return $data;
+    }
+
+    /**
      * Paginate the list of posts by using the request URI
      *
      * @public
@@ -1451,14 +1501,12 @@ class TinamboTemplate {
             case 'newpost':
                 $out .= $this->tagHeader(_L::get('New Post'));
                 if ($b->requestPost('title')) {
-                    $post = new TinamboPost($b, $_POST);
-                    $filename = $b->cleanup($post->getTitle()) . '.' . $b->config->get('fileExtension');
-                    if (file_exists($b->config->get('postsDir') . $filename)) {
-                        $out .= $this->message(_L::get('There is already an existing post with this name! Please choose another.'), true);
-                    } else if (!$post->saveAs($b->config->get('postsDir') . $filename)) {
-                        $out .= $this->message(_L::get('There was an error saving your post file. Please try again!'), true);
-                    } else {
-                        $out .= $this->message(_L::get('Post successfully created.'));
+                    $result = $b->savePostData();
+                    if ($result['result'] == true) {
+                        $out .= $this->message($result['message']);
+                    }
+                    else {
+                        $out .= $this->message($result['error'], true);
                     }
                 }
                 $out .= '<form method="post">
@@ -1479,14 +1527,12 @@ class TinamboTemplate {
                 }
                 $out .= $this->tagHeader(_L::get('New Page'));
                 if ($b->requestPost('title')) {
-                    $post = new TinamboPost($b, $_POST);
-                    $filename = $b->cleanup($post->getTitle()) . '.' . $b->config->get('fileExtension');
-                    if (file_exists($b->config->get('pagesDir') . $filename)) {
-                        $out .= $this->message(_L::get('There is already an existing page with this name! Please choose another.'), true);
-                    } else if (!$post->saveAs($b->config->get('pagesDir') . $filename)) {
-                        $out .= $this->message(_L::get('There was an error saving your page file. Please try again!'), true);
-                    } else {
-                        $out .= $this->message(_L::get('Page successfully created.'));
+                    $result = $b->savePostData(true);
+                    if ($result['result'] == true) {
+                        $out .= $this->message($result['message']);
+                    }
+                    else {
+                        $out .= $this->message($result['error'], true);
                     }
                 }
                 $out .= '<form method="post">
@@ -1579,12 +1625,13 @@ class TinamboTemplate {
             case 'editpost':
                 $out .= $this->tagHeader(_L::get('Edit Post'));
                 if ($b->requestPost('title')) {
-                    $newPost = new TinamboPost($b, $_POST);
-                    if (!$newPost->saveAs($post->getFile())) {
-                        $out .= $this->message(_L::get('There was an error saving your post file. Please try again!'), true);
-                    } else {
-                        $out .= $this->message(_L::get('Post successfully updated.'));
-                        $post = $newPost;
+                    $result = $b->savePostData(false, true, $post);
+                    if ($result['result'] == true) {
+                        $out .= $this->message($result['message']);
+                        $post = $result['post'];
+                    }
+                    else {
+                        $out .= $this->message($result['error'], true);
                     }
                 }
                 $out .= '<form method="post">
@@ -1606,12 +1653,13 @@ class TinamboTemplate {
                 }
                 $out .= $this->tagHeader(_L::get('Edit Page'));
                 if ($b->requestPost('title')) {
-                    $newPost = new TinamboPost($b, $_POST);
-                    if (!$newPost->saveAs($post->getFile())) {
-                        $out .= $this->message(_L::get('There was an error saving your page file. Please try again!'), true);
-                    } else {
-                        $out .= $this->message(_L::get('Page successfully updated.'));
-                        $post = $newPost;
+                    $result = $b->savePostData(true, true, $post);
+                    if ($result['result'] == true) {
+                        $out .= $this->message($result['message']);
+                        $post = $result['post'];
+                    }
+                    else {
+                        $out .= $this->message($result['error'], true);
                     }
                 }
                 $out .= '<form method="post">
@@ -1750,36 +1798,30 @@ class TinamboTemplate {
                     $endpoint = $b->requestPost('endpoint');
                     switch ($endpoint) {
                         case 'newpost':
-                            if ($b->requestPost('title')) {
-                                $post = new TinamboPost($b, $_POST);
-                                $filename = $b->cleanup($post->getTitle()) . '.' . $b->config->get('fileExtension');
-                                if (file_exists($b->config->get('postsDir') . $filename)) {
-                                    $data['error'] = _L::get('There is already an existing post with this name! Please choose another.');
-                                } else if (!$post->saveAs($b->config->get('postsDir') . $filename)) {
-                                    $data['error'] = _L::get('There was an error saving your post file. Please try again!');
-                                } else {
-                                    $data['message'] = _L::get('Post successfully created.');
-                                }
+                        case 'newpage':
+                            $result = $b->savePostData(($endpoint == 'newpage') ? true : false);
+                            if ($result['result'] == true) {
+                                $data['message'] = $result['message'];
                             }
                             else {
-                                $data['error'] = _L::get('Invalid method data.');
+                                $data['error'] = $result['error'];
                             }
                             break;
-                        case 'newpage':
-                            if ($b->requestPost('title')) {
-                                $post = new TinamboPost($b, $_POST);
-                                $filename = $b->cleanup($post->getTitle()) . '.' . $b->config->get('fileExtension');
-                                if (file_exists($b->config->get('pagesDir') . $filename)) {
-                                    $data['error'] = _L::get('There is already an existing page with this name! Please choose another.');
-                                } else if (!$post->saveAs($b->config->get('pagesDir') . $filename)) {
-                                    $data['error'] = _L::get('There was an error saving your page file. Please try again!');
+                        case 'editpost':
+                        case 'editpage':
+                            $postId = intval($b->requestPost('id'));
+                            $postData = ($endpoint == 'editpage') ? $b->_getPageById($postId) : $b->_getPostById($postId);
+                            if ($postData) {
+                                $result = $b->savePostData(($endpoint == 'editpage') ? true : false, true, $postData);
+                                if ($result['result'] == true) {
+                                    $data['message'] = $result['message'];
                                 }
                                 else {
-                                    $data['message'] = _L::get('Page successfully created.');
+                                    $data['error'] = $result['error'];
                                 }
                             }
                             else {
-                                $data['error'] = _L::get('Invalid method data.');
+                                $data['error'] = _L::get('Invalid method data.`');
                             }
                             break;
                         default:
