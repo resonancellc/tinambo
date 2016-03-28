@@ -127,7 +127,7 @@ class TinamboConfig {
         ),
         /* your auth key, CHANGE THIS to something only you know, and
          * change it at least monthly */
-        'key' => '1',
+        'key' => false,
     );
 
     /**
