@@ -9,21 +9,31 @@
 Description
 ===========
 
-Tinambo is a one-file blogging system written in PHP that doesn't have any other
-requirements than PHP to run. It doesn't need a database, it stores the posts
-and pages into JSON text files.
+Tinambo is a one-file blogging system written in PHP (version doesnt' matter),
+that doesn't have any other requirements than PHP to run. It doesn't need a
+database, it stores the posts and pages into JSON text files.
 
 Features
 ========
 
-- posts, pages, image attachments
-- editor area for easy blog administration
-- contact form
-- full-text search
-- Facebook and Twitter integration
-- Google Analytics integration
-- Image editing via Picozu Image Editor
-- Facebook or Disqus comments
+- posts, pages, image attachments.
+- customizable URL slug for admin panel (security by obscurity is good).
+- editor area for easy blog administration.
+- contact form.
+- full-text search.
+- Facebook and Twitter integration.
+- Google Analytics integration.
+- image editing via Picozu Image Editor.
+- Facebook or Disqus comments.
+- built-in jQuery via Google AJAX libs.
+- RSS and ATOM feeds.
+- JSON API output so you can integrate 3rd party apps to post/view data
+	to/from your blog.
+- minify option that will minimize and obfuscate the HTML code.
+- full HTML5-compliant.
+- embed mode when you want to embed the blog into an existing design.
+- many other things that you can discover in this 130Kb application (comments,
+	lots of them, included in that).
 
 Installation
 ============
