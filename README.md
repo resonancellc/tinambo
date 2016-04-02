@@ -9,9 +9,17 @@
 Description
 ===========
 
-Tinambo is a one-file blogging system written in PHP (version doesnt' matter),
+Tinambo is a one-file flat-file blogging system written in PHP (version doesnt' matter),
 that doesn't have any other requirements than PHP to run. It doesn't need a
 database, it stores the posts and pages into JSON text files.
+
+As a flat-file system, Tinambo stores the content in files and folders, which has a
+handful of advantages. You don’t need to query the database each time you show a page
+and the flat-file system generates dynamic pages.
+
+There’s no need to configure or maintain a database and this is a big thing for a
+lot of people; it saves a lot of time and often is a headache. Installation is usually
+just a matter of uploading files to a server and boom. Your site is ready.
 
 Features
 ========
@@ -53,8 +61,13 @@ understand the implications. Changing the `key` to something different than
 License
 =======
 
-Tinambo is written by Marius Stanciu - Sergiu <marius@vox.space> and released
+Tinambo is written by Marius Stanciu - Sergiu marius AT vox.space and released
 into the Public Domain. It can't get any more free than that.
+
+Contributing
+============
+
+Contributions are welcome! If you need any help, contact me at marius AT vox.space.
 
 Source code
 ===========
@@ -63,3 +76,12 @@ The application can be downloaded from https://vox.space or from GitHub.com
 by issueing:
 
 `git clone https://github.com/voxspace/tinambo.git`
+
+Additional links
+================
+
+| Resource		| Link 					|
+| --------------|-----------------------|
+| vox.space 	| https://vox.space 	|
+| PHP 			| https://php.net 		|
+| JSON			| http://www.json.org 	|
