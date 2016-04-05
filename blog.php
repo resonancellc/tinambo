@@ -163,6 +163,7 @@ class TinamboBlog {
 
     public $paginator;
     public $template;
+    public $security;
     public $css;
     public $js;
     public $config;
@@ -184,6 +185,7 @@ class TinamboBlog {
     public function __construct() {
         session_start();
         $this->config = new TinamboConfig();
+        $this->security = new TinamboSecurity($this);
         $this->template = new TinamboTemplate($this);
         $this->js = new TinamboJS($this);
         $this->css = new TinamboCSS($this);
@@ -191,6 +193,7 @@ class TinamboBlog {
 
         $this->_check();
         $this->_getPosts();
+        $this->_getImages();
 
         if ($this->config->get('enablePages') == true) {
             $this->_getPages();
@@ -285,10 +288,11 @@ class TinamboBlog {
      */
     private function _parseURL() {
         $out = '';
-        $mode = (isset($_GET['mode'])) ? $this->cleanup($_GET['mode']) : 'index';
+        $mode = (isset($_GET['mode'])) ? $this->security->cleanup($_GET['mode']) : 'index';
         $page = (isset($_GET['page'])) ? intval($_GET['page']) : 1;
-        $section = (isset($_GET['section'])) ? $this->cleanup($_GET['section']) : 'dashboard';
+        $section = (isset($_GET['section'])) ? $this->security->cleanup($_GET['section']) : 'dashboard';
         $id = isset($_GET['id']) ? intval($_GET['id']) : false;
+        $name = (isset($_GET['name'])) ? $this->security->sanitizeFileName($_GET['name']) : false;
         switch ($mode) {
             case 'css':
                 header('Content-type: text/css');
@@ -392,6 +396,10 @@ class TinamboBlog {
                     if (!$id || !$post = $this->_getPageById($id)) {
                         $this->get404();
                     }
+                } else if ($section == 'info') {
+                    if (!$name || !$post = $this->_getImageByName($name)) {
+                        $this->get404();
+                    }
                 }
                 $out .= $this->loadExternalFile('header') .
                         $this->loadExternalFile($section, 'template', $post) .
@@ -484,8 +492,25 @@ class TinamboBlog {
     private function _getImages() {
         $img = glob($this->config->get('imagesDir') . '*.{jpg,png,gif}', GLOB_BRACE);
         foreach ($img as $key => &$file) {
-            $this->images[] = $file;
+            $this->images[] = str_replace($this->config->get('imagesDir'), '', $file);
         }
+    }
+
+    /**
+     * Search through the list of images and return the name of the image
+     * if it does exist
+     *
+     * @public
+     * @param String $id
+     * @returns String || Boolean
+     */
+    public function _getImageByName($id) {
+        for ($i = 0; $i < count($this->images); $i++) {
+            if ($this->images[$i] == $id) {
+                return $this->images[$i];
+            }
+        }
+        return false;
     }
 
     /**
@@ -590,7 +615,7 @@ class TinamboBlog {
         $out = '<ul>';
         for ($i = 0; $i < count($posts); $i++) {
             if ($posts[$i]->isPublished() && stripos($posts[$i]->getContent(), $query) != false) {
-                $out .= '<li><a href="' . $posts[$i]->getPermalink() . '">' . $posts[$i]->getTitle() . '</a></li>';
+                $out .= $this->template->tagAnchorWrap($posts[$i]->getPermalink(), $posts[$i]->getTitle());
                 $hasResults = true;
             }
         }
@@ -614,7 +639,7 @@ class TinamboBlog {
         );
         if ($this->requestPost('title')) {
             $post = new TinamboPost($this, $_POST, ($isPage == true) ? true : false);
-            $filename = $this->cleanup($post->getTitle()) . '.' . $this->config->get('fileExtension');
+            $filename = $this->security->cleanup($post->getTitle()) . '.' . $this->config->get('fileExtension');
             if ($update == true && $oldPost != false) {
                 $newPost = new TinamboPost($this, $_POST, ($isPage == true) ? true : false);
                 if (!$newPost->saveAs($oldPost->getFile())) {
@@ -756,8 +781,7 @@ class TinamboBlog {
      * @returns String
      */
     public function getPromotion() {
-        return _L::get('running on') .
-            ' <a href="https://vox.space" class="tinambo" target="_blank">Tinambo</a>';
+        return _L::get('running on') . ' ' . $this->template->tagAnchor('https://vox.space', 'Tinambo', 'tinambo', '_blank');
     }
 
     /**
@@ -777,7 +801,7 @@ class TinamboBlog {
      * @returns Boolean
      */
     public function isAdmin() {
-        $mode = (isset($_GET['mode'])) ? $this->cleanup($_GET['mode']) : 'index';
+        $mode = (isset($_GET['mode'])) ? $this->security->cleanup($_GET['mode']) : 'index';
         return (($this->isLogin()) && ($mode == $this->getSlug('editor'))) ? true : false;
     }
 
@@ -790,7 +814,7 @@ class TinamboBlog {
      */
     public function requestGet($key, $return = false) {
         if (isset($_GET[$key])) {
-            return $this->sanitize($_GET[$key]);
+            return $this->security->sanitize($_GET[$key]);
         } else {
             return $return;
         }
@@ -805,7 +829,7 @@ class TinamboBlog {
      */
     public function requestPost($key, $return = false) {
         if (isset($_POST[$key])) {
-            return $this->sanitize($_POST[$key]);
+            return $this->security->sanitize($_POST[$key]);
         } else {
             return $return;
         }
@@ -843,29 +867,11 @@ class TinamboBlog {
         }
         return false;
     }
-
-    /**
-     * Sanitize the string
-     *
-     * @public
-     * @returns String
-     * @param String $string
-     */
-    public function sanitize($string) {
-        return htmlspecialchars(strip_tags($string));
-    }
-
-    /**
-     * Cleanup the string to prepare it for using as an URL
-     *
-     * @public
-     * @returns String
-     * @param String $string
-     */
-    public function cleanup($string) {
-        return strip_tags(strtolower(str_replace(' ', '-', $string)));
-    }
-
+    /*
+        public function sanitize($string) {
+            return htmlspecialchars(strip_tags(trim($string)));
+        }
+    */
     /**
      * Increment the last post id and return it
      *
@@ -999,12 +1005,10 @@ class TinamboTemplate {
             $out .= $this->getPagesList('li');
         }
         if ($this->blog->config->get('enableSearch') == true) {
-            $out .= '<li><a href="' . $this->blog->formatURL('search') . '">' .
-                _L::get('Search') . '</a></li>';
+            $out .= $this->tagAnchorWrap($this->blog->formatURL('search'), _L::get('Search'));
         }
         if ($this->blog->config->get('enableContact') == true) {
-            $out .= '<li><a href="' . $this->blog->formatURL('contact') . '">' .
-                _L::get('Contact') . '</a></li>';
+            $out .= $this->tagAnchorWrap($this->blog->formatURL('contact'), _L::get('Contact'));
         }
         return $out;
     }
@@ -1028,7 +1032,7 @@ class TinamboTemplate {
                     $out .= '<ul class="sub-menu">';
                     for ($x = 0; $x < count($children); $x++) {
                         $c = $children[$x]->getChildren();
-                        $out .= '<li><a href="' . $this->blog->formatURL('page', $children[$x]->getId()) . '">' . $children[$x]->getTitle() . '</a>';
+                        $out .= '<li>' . $this->tagAnchor($this->blog->formatURL('page', $children[$x]->getId()), $children[$x]->getTitle());
                         if ($c != false) {
                             $out .= $this->_getPagesChildren($mode, $level, $children[$x]);
                         }
@@ -1131,7 +1135,7 @@ class TinamboTemplate {
             case 'li':
                 for ($i = 0; $i < count($pages); $i++) {
                     if ($pages[$i]->getParent() == false && $pages[$i]->isPublished()) {
-                        $out .= '<li><a href="' . $this->blog->formatURL('page', $pages[$i]->getId()) . '">' . $pages[$i]->getTitle() . '</a>';
+                        $out .= '<li>' . $this->tagAnchor($this->blog->formatURL('page', $pages[$i]->getId()), $pages[$i]->getTitle());
                         $out .= $this->_getPagesChildren('li', 0, $pages[$i]);
                         $out .= '</li>';
                     }
@@ -1216,7 +1220,7 @@ class TinamboTemplate {
                 $out .= $this->_generateMenu($value, $li);
                 $out .= '</ul>' . ($li == true ? '</li>' : '</optgroup>');
             } else {
-                $out .= ($li == true ? '<li><a href="' . $value . '">' . $key . '</a></li>' : '<option value="' . $value . '">' . $key . '</option>');
+                $out .= ($li == true ? $this->tagAnchorWrap($value, $key) : '<option value="' . $value . '">' . $key . '</option>');
             }
         }
         return $out;
@@ -1277,6 +1281,38 @@ class TinamboTemplate {
      */
     public function message($value, $error = false) {
         return '<div class="message' . ($error == true ? ' error' : ' info') . '">' . $value . '</div>';
+    }
+
+    /**
+     * Output an anchor tag
+     *
+     * @public
+     * @param String $href
+     * @param String $title
+     * @param String $className
+     * @param String $targetName
+     * @returns String
+     */
+    public function tagAnchor($href, $title, $className = '', $targetName = '') {
+        return '<a href="' . $href . '" class="' . $className . '" target="' . $targetName . '">' . $title . '</a>';
+    }
+
+    /**
+     * Output an anchor tag wrapped into another set of tags
+     *
+     * @public
+     * @param String $href
+     * @param String $title
+     * @param String $wrapIn
+     * @param String $className
+     * @param String $targetName
+     * @returns String
+     */
+    public function tagAnchorWrap($href, $title, $wrapIn = 'li', $className = '', $targetName = '') {
+        $out = '<' . $wrapIn . '>';
+        $out .= $this->tagAnchor($href, $title, $className = '', $targetName = '');
+        $out .= '</' . $wrapIn . '>';
+        return $out;
     }
 
     /**
@@ -1457,12 +1493,13 @@ class TinamboTemplate {
                 $images = $b->getImages();
                 for ($i = 0; $i < count($images); $i++) {
                     $out .= '<div>
-                        <a target="_blank" title="' . _L::get('Download image') . '" href="' . $images[$i] . '" class="controls preview entypo-download"></a>';
+                        <a target="_blank" title="' . _L::get('Download image') . '" href="' . $b->config->get('imagesDir') . $images[$i] . '" class="controls preview entypo-download"></a>
+                        <a title="' . _L::get('Image information') . '" href="' . $b->getAdminURL() . '&amp;section=info&amp;name=' . $images[$i] . '" class="controls image-info entypo-picture"></a>';
                     if ($b->config->get('picozuKey')) {
-                        $out .= '<a title="' . _L::get('Open image in Picozu') . '" data-popup="true" href="' . $this->blog->config->get('domain') . $images[$i] . '" class="controls picozu entypo-brush"></a>';
+                        $out .= '<a title="' . _L::get('Open image in Picozu') . '" data-popup="true" href="' . $b->config->get('domain') . $images[$i] . '" class="controls picozu entypo-brush"></a>';
                     }
-                    $out .= '<img src="' . $images[$i] . '" />
-                        <input readonly type="text" onfocus="this.select();" class="imagepath" value="' . $images[$i] . '" />
+                    $out .= '<img src="' . $b->config->get('imagesDir') . $images[$i] . '" />
+                        <input readonly type="text" onfocus="this.select();" class="imagepath" value="' . $b->config->get('imagesDir') . $images[$i] . '" />
                     </div>';
                 }
                 $out .= '</div>';
@@ -1645,6 +1682,19 @@ class TinamboTemplate {
                     <textarea cols="80" id="editor" name="content" rows="10">' . $post->getRawContent() . '</textarea>
                     <p>' . $this->tagButton(_L::get('Update')) . '</p>
                 </form>';
+                break;
+            case 'info':
+                $out .= $this->tagHeader(_L::get('Image information'));
+                $image_info = getimagesize($b->config->get('imagesDir') . $post);
+                $out .= '<div>
+                        <img src="' . $b->config->get('imagesDir') . $post .'" />
+                        <hr />
+                        <div class="info"><span>' . _L::get('File Name') . ':</span> ' . $post .'</div>
+                        <div class="info"><span>' . _L::get('Image type') . ':</span> ' . $image_info['mime'] . '</div>
+                        <div class="info"><span>' . _L::get('Dimensions') . ':</span> ' . $image_info[0] . ' x ' . $image_info[1]. ' ' . _L::get('pixels') . '</div>
+                        <div class="info"><span>' . _L::get('Size') . ':</span> ' . filesize($b->config->get('imagesDir') . $post) .' ' . _L::get('bytes') . '</div>
+                        <div class="info"><span>' . _L::get('Image tag') . ':</span> &lt;img src="' .  $b->config->get('imagesDir') . $post . '" alt="" /&gt;</div>
+                    </div>';
                 break;
             case 'editpage':
                 if (!$b->config->get('enablePages')) {
@@ -1843,7 +1893,9 @@ class TinamboTemplate {
                     }
                     $post = $b->getPages();
                     for ($i = 0; $i < count($post); $i++) {
-                        $data['pages'][] = $post[$i]->getArray();
+                        if ($post[$i]->isPublished()) {
+                            $data['pages'][] = $post[$i]->getArray();
+                        }
                     }
                 }
                 $out .= json_encode($data);
@@ -1964,7 +2016,7 @@ class TinamboTemplate {
                 $out .= '<article class="page">
                     <h1 class="entry-title">' . _L::get('Page not found') . '</h1>
                     <div class="body padding">
-                        <p>' . _L::get('Unfortunately, the page you were looking for wasn`t found.') . ' <a href="' . $b->formatURL() . '">' . _L::get('Go to homepage') . '</a>?</p>
+                        <p>' . _L::get('Unfortunately, the page you were looking for was not found.') . ' <a href="' . $b->formatURL() . '">' . _L::get('Go to homepage') . '</a>?</p>
                     </div>
                 </article>';
                 break;
@@ -2088,13 +2140,13 @@ class TinamboPost {
         } else if ($parType == 'array') {
             $authors = $this->blog->getAuthors();
             $this->id = isset($file['id']) ? intval($file['id']) : $this->blog->getNewPostId();
-            $this->title = $blog->sanitize($file['title']);
-            $this->date = isset($file['date']) ? $blog->sanitize($file['date']) : '';
+            $this->title = $blog->security->sanitize($file['title']);
+            $this->date = isset($file['date']) ? $blog->security->sanitize($file['date']) : '';
             $this->parent = isset($file['parent']) && $file['parent'] != 'false' ? intval($file['parent']) : false;
-            $this->author = isset($file['author']) ? $blog->sanitize($file['author']) : $authors[0];
+            $this->author = isset($file['author']) ? $blog->security->sanitize($file['author']) : $authors[0];
             $this->content = $file['content'];
-            $this->category = isset($file['category']) ? $blog->sanitize($file['category']) : '';
-            $this->headerImage = isset($file['headerImage']) ? $blog->sanitize($file['headerImage']) : '';
+            $this->category = isset($file['category']) ? $blog->security->sanitize($file['category']) : '';
+            $this->headerImage = isset($file['headerImage']) ? $blog->security->sanitize($file['headerImage']) : '';
             $this->sticky = isset($file['sticky']) ? true : false;
             $this->published = isset($file['published']) ? true : false;
             $this->file = false;
@@ -2469,6 +2521,161 @@ class TinamboJS {
 
 }
 
+class TinamboSecurity {
+
+    private $blog;
+
+    /**
+     * Object constructor
+     * 
+     * @param TinamboBlog $blog
+     */
+    public function __construct($blog) {
+        $this->blog = $blog;
+    }
+
+    /**
+     * Sanitize the string
+     *
+     * @public
+     * @returns String
+     * @param String | Array $string
+     */
+    public function sanitize($string) {
+        if (is_array($string)) {
+            while (list($key) = each($string)) {
+                $string[$key] = $this->sanitize($string[$key]);
+            }
+            return $string;
+        }
+        $string = $this->_removeInvisibleChars($string);
+        do {
+            $string = rawurldecode($string);
+        }
+        while (preg_match('/%[0-9a-f]{2,}/i', $string));
+        $string = $this->_removeInvisibleChars($string);
+        $string = str_replace("\t", ' ', $string);
+        $converted_string = $string;
+        $string = $this->_sanitizeNeverAllowed($string);
+        if ($is_image === true) {
+            $string = preg_replace('/<\?(php)/i', '&lt;?\\1', $string);
+        }
+        else {
+            $string = str_replace(array('<?', '?'.'>'), array('&lt;?', '?&gt;'), $string);
+        }
+        $string = preg_replace(
+            '#(alert|prompt|confirm|cmd|passthru|eval|exec|expression|system|fopen|fsockopen|file|file_get_contents|readfile|unlink)(\s*)\((.*?)\)#si',
+            '\\1\\2&#40;\\3&#41;',
+            $string
+        );
+        $string = $this->_sanitizeNeverAllowed($string);
+        return $string;
+    }
+
+    /**
+     * Sanitize a string by removing some parts of it
+     *
+     * @private
+     * @param String $string
+     * @returns String
+     */
+    private function _sanitizeNeverAllowed($string) {
+        $badStr = array(
+            'document.cookie' => '[removed]',
+            'document.write' => '[removed]',
+            '.parentNode' => '[removed]',
+            '.innerHTML' => '[removed]',
+            '-moz-binding' => '[removed]',
+            '<!--' => '&lt;!--',
+            '-->' => '--&gt;',
+            '<![CDATA[' => '&lt;![CDATA[',
+            '<comment>' => '&lt;comment&gt;'
+        );
+        $badRegex = array(
+            'javascript\s*:',
+            '(document|(document\.)?window)\.(location|on\w*)',
+            'expression\s*(\(|&\#40;)',
+            'vbscript\s*:',
+            'wscript\s*:',
+            'jscript\s*:',
+            'vbs\s*:',
+            'Redirect\s+30\d',
+            "([\"'])?data\s*:[^\\1]*?base64[^\\1]*?,[^\\1]*?\\1?"
+        );
+        $string = str_replace(array_keys($badStr), $badStr, $string);
+        foreach ($badRegex as $regex) {
+            $string = preg_replace('#' . $regex . '#is', '[removed]', $string);
+        }
+        return $string;
+    }
+
+    private function _removeInvisibleChars($string, $urlEncoded = true) {
+        $bad = array();
+        if ($urlEncoded) {
+            $bad[] = '/%0[0-8bcef]/';
+            $bad[] = '/%1[0-9a-f]/';
+        }
+        $bad[] = '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/S';
+        do {
+            $string = preg_replace($bad, '', $string, -1, $count);
+        }
+        while ($count);
+        return $string;
+    }
+
+    /**
+     * Sanitize the file name
+     *
+     * @public
+     * @param String $string
+     * @param Boolean $relativePath
+     * @returns String
+     */
+    public function sanitizeFileName($string, $relativePath = false) {
+        $bad = array(
+            '../', '<!--', '-->', '<', '>',
+            "'", '"', '&', '$', '#',
+            '{', '}', '[', ']', '=',
+            ';', '?', '%20', '%22',
+            '%3c',
+            '%253c',
+            '%3e',
+            '%0e',
+            '%28',
+            '%29',
+            '%2528',
+            '%26',
+            '%24',
+            '%3f',
+            '%3b',
+            '%3d'
+        );
+        if (!$relative_path) {
+            $bad[] = './';
+            $bad[] = '/';
+        }
+        $string = $this->_removeInvisibleChars($string, false);
+        do {
+            $old = $string;
+            $string = str_replace($bad, '', $string);
+        }
+        while ($old !== $string);
+        return stripslashes($string);
+    }
+
+    /**
+     * Cleanup the string to prepare it for using as an URL
+     *
+     * @public
+     * @returns String
+     * @param String $string
+     */
+    public function cleanup($string) {
+        return strip_tags(strtolower(trim(str_replace(' ', '-', $string))));
+    }
+
+}
+
 /**
  * Stylesheet generation class
  */
@@ -2497,7 +2704,7 @@ class TinamboCSS {
         switch ($file) {
             case 'site':
                 /* master Tinambo stylesheet */
-                $out .= '/* Tinambo v' . $this->blog->getVersion() . ' https://vox.space */html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{border:0;font-family:inherit;font-size:100%;font-style:inherit;font-weight:inherit;margin:0;outline:0;padding:0;vertical-align:baseline}html{font-size:62.5%;overflow-y:scroll;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%}body{background:#fff}article,aside,details,figcaption,figure,footer,header,main,nav,section{display:block}ol,ul{list-style:none}table{border-collapse:separate;border-spacing:0}caption,th,td{font-weight:normal;text-align:left}blockquote:before,blockquote:after,q:before,q:after{content:""}blockquote,q{quotes:"" ""}a:focus{outline:thin dotted}a:hover,a:active{outline:0}a img{border:0}body,button,input,select,textarea{color:#404040;font-family:"Open Sans",Helvetica,Arial,sans-serif;font-size:17px;line-height:28px}h1,h2,h3,h4,h5,h6{font-weight:bold;font-weight:600;margin:0 0 20px 0;letter-spacing:-1px}h1{font-size:28px}h2{font-size:24px}h3{font-size:20px}h4{font-size:18px}h5{font-size:20px}h6{font-size:16px}hr{clear:both;background-color:#ccc;border:0;height:1px;margin-bottom:20px}p{margin-bottom:20px}ul,ol{margin:0 0 20px 40px}ul{list-style:disc}ol{list-style:decimal}li>ul,li>ol{margin-bottom:0;margin-left:40px}dt{font-weight:bold}dd{margin:0 20px 20px}b,strong{font-weight:bold}dfn,cite,em,i{font-style:italic}blockquote{margin:0 40px}address{margin:0 0 20px}pre{background:#eee;font-family:Courier,monospace;margin-bottom:20px;padding:20px;overflow:auto;max-width:100%}code,kbd,tt,var{font:15px Monaco,Consolas,monospace}abbr,acronym{border-bottom:1px dotted #666;cursor:help}mark,ins{background:#fff9c0;text-decoration:none}sup,sub{font-size:75%;height:0;line-height:0;position:relative;vertical-align:baseline}sup{bottom:1ex}sub{top:.5ex}figure{margin:0}table{margin:0 0 20px;width:100%}th{font-weight:bold}img{height:auto;max-width:100%}button,input,select,textarea{font-size:100%;margin:0;vertical-align:baseline;*vertical-align:middle}button,input{line-height:normal}button,html input[type="button"],input[type="reset"],input[type="submit"],.button{border:1px solid #ccc;border-color:#ccc #ccc #bbb #ccc;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;background:#e6e6e6;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);-moz-box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);color:rgba(0,0,0,.8) !important;cursor:pointer;-webkit-appearance:button;font-size:12px;line-height:1;padding:9px 16px;text-shadow:0 1px 0 rgba(255,255,255,0.8)}button:hover,html input[type="button"]:hover,input[type="reset"]:hover,input[type="submit"]:hover,.button:hover{border-color:#ccc #bbb #aaa #bbb;box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02);-moz-box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02)}button:focus,html input[type="button"]:focus,.button:focus,input[type="reset"]:focus,input[type="submit"]:focus,button:active,html input[type="button"]:active,input[type="reset"]:active,input[type="submit"]:active{border-color:#aaa #bbb #bbb #bbb;box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15);-moz-box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15);-webkit-box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15)}input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}input[type="password"],input[type="text"],textarea{color:#666;border:1px solid #ccc;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px}input[type="password"]:focus,input[type="text"]:focus,textarea:focus{color:#111}input[type="password"],input[type="text"]{padding:3px}textarea{overflow:auto;padding-left:3px;vertical-align:top;width:98%}a,a:visited,.entry-title a:hover,.entry-meta a:hover,.site-footer a:hover{color:#e45348;text-decoration:none}.entry-title a,.entry-content a:hover,a:hover,a:focus,a:active{color:#333}a.more-link:hover{background:#e45348;color:#fff}.site-footer a,.entry-meta a{color:#888}.alignleft{display:inline;float:left;margin-right:20px}.alignright{display:inline;float:right;margin-left:20px}.aligncenter{clear:both;display:block;margin:0 auto}.entry-title{margin-bottom:5px}.page .entry-title,.admin .entry-title{margin-bottom:20px}.admin .left{float:left}.admin .buttons{float:right}#navigation-small{display:none;margin:19px 0 0 19px;border:auto;padding:0;width:auto;font-size:17px}.site-navigation{float:left}.main-navigation ul{margin:0 0 0 15px;display:block;position:relative;float:left}.main-navigation ul li{position:relative}.main-navigation li{list-style-type:none;display:inline-block}.main-navigation a,.main-navigation a:visited,.menu-social-container a,.menu-social-container a:visited{font-size:12px;padding:0 15px;line-height:60px;color:#afafaf}.menu-social-container a:hover,.main-navigation a:hover{color:#333}.main-navigation ul ul{margin:0;box-shadow:0 2px 2px rgba(0,0,0,0.1);-moz-box-shadow:0 2px 2px rgba(0,0,0,0.1);-webkit-box-shadow:0 2px 2px rgba(0,0,0,0.1);display:none;float:left;position:absolute;top:60px;z-index:99999}.main-navigation ul ul ul{left:100%;top:-1px}.main-navigation ul li:hover>ul{display:block}.main-navigation li.current-menu-ancestor>a,.main-navigation li.current_page_item>a,.main-navigation li.current-menu-item>a{color:#333}.main-navigation .sub-menu{width:200px;text-align:left;background:#fff}.main-navigation .sub-menu li{display:block}.main-navigation .sub-menu li:first-child{padding-top:10px}.main-navigation .sub-menu li:last-child{padding-bottom:8px}.main-navigation .sub-menu ul{top:-10px}.main-navigation .sub-menu li:first-child ul{top:-1px}.main-navigation .sub-menu a{text-transform:none;display:block;line-height:18px;padding:10px 20px}.menu-social-container{position:absolute;right:20px}.menu-social-container li{display:inline;font-size:12px;line-height:60px;position:relative}.menu-social-container a{padding-left:15px;padding-right:0}.menu-social-container a:before{position:relative;top:-3px;padding-right:3px}.page-links{clear:both;margin:0 0 30px}.entry-meta{font-size:11px;margin:0 0 25px 0}.featured-image{margin:0 0 30px 0}.featured-image img{box-shadow:0 0 2px 0 rgba(0,0,0,0.3);-moz-box-shadow:0 0 2px 0 rgba(0,0,0,0.3);-webkit-box-shadow:0 0 2px 0 rgba(0,0,0,0.3);width:1060px}.featured-image img,.featured-image a{display:block}.site-content [class*="navigation"]{margin:0 0 20px;overflow:hidden}[class*="navigation"] .nav-previous{float:left;width:50%}[class*="navigation"] .nav-next{float:right;text-align:right;width:50%}.site-header{background:#fff;min-height:60px;box-shadow:0 0 3px 0 rgba(0,0,0,0.3);-moz-box-shadow:0 0 3px 0 rgba(0,0,0,0.3);-webkit-box-shadow:0 0 3px 0 rgba(0,0,0,0.3);margin-bottom:60px}.site-branding{float:left;background:#e55449;padding:0 15px}.site-header .site-branding a{color:#fff;display:block}.site-branding:hover{opacity:.90}.site-header .site-title{font-weight:normal;font-weight:300;margin:0;font-size:19px;line-height:60px;white-space:nowrap;display:block}.site-header .imagelogo img{display:block}.site-header .imagelogo{background:0}.site-header .imagelogo .site-title{line-height:1}.content-width{margin:0 auto;position:relative}.site-content{padding-bottom:20px;word-wrap:break-word}.site-footer{font-size:12px;color:#afafaf;border-top:1px solid #ccc;padding:20px;text-align:center;width:1060px;margin:0 auto}.more-link{text-transform:uppercase;padding:6px 18px;border:2px solid #e45348;border-radius:4px;-moz-border-radius:4px;-webkit-border-radius:4px;display:inline-block;font-size:13px;margin-top:10px}*,*:before,*:after{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box}.screen-reader-text{clip:rect(1px,1px,1px,1px);position:absolute !important}.screen-reader-text:hover,.screen-reader-text:active,.screen-reader-text:focus{background-color:#f1f1f1;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;box-shadow:0 0 2px 2px rgba(0,0,0,0.6);-moz-box-shadow:0 0 2px 2px rgba(0,0,0,0.6);-webkit-box-shadow:0 0 2px 2px rgba(0,0,0,0.6);clip:auto !important;color:#21759b;display:block;font-size:14px;font-weight:bold;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}.clear:before,.clear:after,[class*="content"]:before,[class*="content"]:after,[class*="site"]:before,[class*="site"]:after{content:"";display:table}.clear:after,[class*="content"]:after,[class*="site"]:after{clear:both}.content-width{width:1100px;padding:0 20px}@media only screen and (min-width:960px) and (max-width:1199px){.content-width{width:960px}}@media only screen and (min-width:768px) and (max-width:959px){.content-width{width:748px}}@media only screen and (max-width:767px){.main-navigation ul{display:none}.menu-social-container{display:none}.content-width,.site-footer{width:auto}.admin textarea{width:100%!important}.menu-social-container ul{margin:15px 0 0 0;text-align:center}#navigation-small{display:inline;display:inline-block}}@media only screen and (max-width:480px){#promo-wrap .promo-content{font-size:23px;line-height:33px}.column-grid .column{width:100%;display:block;float:none;clear:both}.hidemobile{display:none}}.login input[type=text],.contact input[type=text]{width:30%;margin:0 10px 10px 0}.contact textarea{margin-bottom:20px;resize:none}[class*="entypo-"]:before{padding:0 5px 0 5px;font-family:"entypo",sans-serif}.social{margin:20px 0;padding-top:10px}.social a{font-size:28px}.tinambo{font-family:"Mystery Quest"}article.excerpt{margin-bottom:30px}.greet{margin:0 0 20px 0;font-size:28px;text-align:right}.entry-meta span{margin-right:10px}.admin th.small{width:40px}.admin section p{line-height:26px}tr:nth-child(even){background-color:#fafafa}tr:nth-child(odd){background-color:#fff}tr:hover{background-color:#ededed}td,th{padding:4px 10px;text-align:left}th{background-color:#e55449;color:#fff}th:last-child,td:last-child{font-size:26px;text-align:center;width:140px}td span{color:#e55449}.admin input[type="text"],input.search,.admin select{font-size:20px;margin:0 10px 10px 0;width:522px;padding:5px;border:1px solid #b6b6b6}.admin .last{margin-right:0 !important}.admin textarea{font-size:20px;height:500px;resize:none;padding:5px;border:1px solid #b6b6b6;width:1060px}.admin .images div img{vertical-align:middle;max-height:147px;max-width:147px}.admin .images span.helper{display:inline-block;vertical-align:middle}.admin .images>div{position:relative;text-align:center;width:168px;height:168px;border:1px solid #b6b6b6;float:left;margin:0 8px 8px 0;padding:10px;background-color:#fff}.admin .images>div .imagepath{border-radius:0;position:absolute;width:168px;font-size:12px;bottom:-11px;left:-1px}.admin .images>div:hover{background-color:#f8f8f8}.admin th.small{width:40px}form label{margin-right:10px}input[type=file]{width:230px}.clearfix:after{content:".";display:block;clear:both;visibility:hidden;line-height:0;height:0}* html .clearfix{height:1%}.admin form p{margin:20px 0}.message{padding:20px;margin:10px 0}.message.error{background-color:#ffafc1}.message.info{background-color:#aed8be}.key{color:#fff;padding:0 10px}.key.ok{background-color:#8fd800}.key.notok{background-color:#ff6e98}.admin .images>div{position:relative}.admin .images .controls{position:absolute;width:32px;height:32px;background-color:#fff;border:1px solid #b6b6b6;display:none}.admin .images .preview{top:0;left:0;border-top:0;border-left:0}.admin .images .picozu{top:0;right:0;border-top:0;border-right:0}.admin .images>div:hover .controls{display:block}' . "\n";
+                $out .= '/* Tinambo v' . $this->blog->getVersion() . ' https://vox.space */html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{border:0;font-family:inherit;font-size:100%;font-style:inherit;font-weight:inherit;margin:0;outline:0;padding:0;vertical-align:baseline}html{font-size:62.5%;overflow-y:scroll;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%}body{background:#fff}article,aside,details,figcaption,figure,footer,header,main,nav,section{display:block}ol,ul{list-style:none}table{border-collapse:separate;border-spacing:0}caption,th,td{font-weight:normal;text-align:left}blockquote:before,blockquote:after,q:before,q:after{content:""}blockquote,q{quotes:"" ""}a:focus{outline:thin dotted}a:hover,a:active{outline:0}a img{border:0}body,button,input,select,textarea{color:#404040;font-family:"Open Sans",Helvetica,Arial,sans-serif;font-size:17px;line-height:28px}h1,h2,h3,h4,h5,h6{font-weight:bold;font-weight:600;margin:0 0 20px 0;letter-spacing:-1px}h1{font-size:28px}h2{font-size:24px}h3{font-size:20px}h4{font-size:18px}h5{font-size:20px}h6{font-size:16px}hr{clear:both;background-color:#ccc;border:0;height:1px;margin-bottom:20px}p{margin-bottom:20px}ul,ol{margin:0 0 20px 40px}ul{list-style:disc}ol{list-style:decimal}li>ul,li>ol{margin-bottom:0;margin-left:40px}dt{font-weight:bold}dd{margin:0 20px 20px}b,strong{font-weight:bold}dfn,cite,em,i{font-style:italic}blockquote{margin:0 40px}address{margin:0 0 20px}pre{background:#eee;font-family:Courier,monospace;margin-bottom:20px;padding:20px;overflow:auto;max-width:100%}code,kbd,tt,var{font:15px Monaco,Consolas,monospace}abbr,acronym{border-bottom:1px dotted #666;cursor:help}mark,ins{background:#fff9c0;text-decoration:none}sup,sub{font-size:75%;height:0;line-height:0;position:relative;vertical-align:baseline}sup{bottom:1ex}sub{top:.5ex}figure{margin:0}table{margin:0 0 20px;width:100%}th{font-weight:bold}img{height:auto;max-width:100%}button,input,select,textarea{font-size:100%;margin:0;vertical-align:baseline;*vertical-align:middle}button,input{line-height:normal}button,html input[type="button"],input[type="reset"],input[type="submit"],.button{border:1px solid #ccc;border-color:#ccc #ccc #bbb #ccc;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;background:#e6e6e6;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);-moz-box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 15px 17px rgba(255,255,255,0.5),inset 0 -5px 12px rgba(0,0,0,0.05);color:rgba(0,0,0,.8) !important;cursor:pointer;-webkit-appearance:button;font-size:12px;line-height:1;padding:9px 16px;text-shadow:0 1px 0 rgba(255,255,255,0.8)}button:hover,html input[type="button"]:hover,input[type="reset"]:hover,input[type="submit"]:hover,.button:hover{border-color:#ccc #bbb #aaa #bbb;box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02);-moz-box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02);-webkit-box-shadow:inset 0 1px 0 rgba(255,255,255,0.8),inset 0 15px 17px rgba(255,255,255,0.8),inset 0 -5px 12px rgba(0,0,0,0.02)}button:focus,html input[type="button"]:focus,.button:focus,input[type="reset"]:focus,input[type="submit"]:focus,button:active,html input[type="button"]:active,input[type="reset"]:active,input[type="submit"]:active{border-color:#aaa #bbb #bbb #bbb;box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15);-moz-box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15);-webkit-box-shadow:inset 0 -1px 0 rgba(255,255,255,0.5),inset 0 2px 5px rgba(0,0,0,0.15)}input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}input[type="password"],input[type="text"],textarea{color:#666;border:1px solid #ccc;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px}input[type="password"]:focus,input[type="text"]:focus,textarea:focus{color:#111}input[type="password"],input[type="text"]{padding:3px}textarea{overflow:auto;padding-left:3px;vertical-align:top;width:98%}a,a:visited,.entry-title a:hover,.entry-meta a:hover,.site-footer a:hover{color:#e45348;text-decoration:none}.entry-title a,.entry-content a:hover,a:hover,a:focus,a:active{color:#333}a.more-link:hover{background:#e45348;color:#fff}.site-footer a,.entry-meta a{color:#888}.alignleft{display:inline;float:left;margin-right:20px}.alignright{display:inline;float:right;margin-left:20px}.aligncenter{clear:both;display:block;margin:0 auto}.entry-title{margin-bottom:5px}.page .entry-title,.admin .entry-title{margin-bottom:20px}.admin .left{float:left}.admin .buttons{float:right}#navigation-small{display:none;margin:19px 0 0 19px;border:auto;padding:0;width:auto;font-size:17px}.site-navigation{float:left}.main-navigation ul{margin:0 0 0 15px;display:block;position:relative;float:left}.main-navigation ul li{position:relative}.main-navigation li{list-style-type:none;display:inline-block}.main-navigation a,.main-navigation a:visited,.menu-social-container a,.menu-social-container a:visited{font-size:12px;padding:0 15px;line-height:60px;color:#afafaf}.menu-social-container a:hover,.main-navigation a:hover{color:#333}.main-navigation ul ul{margin:0;box-shadow:0 2px 2px rgba(0,0,0,0.1);-moz-box-shadow:0 2px 2px rgba(0,0,0,0.1);-webkit-box-shadow:0 2px 2px rgba(0,0,0,0.1);display:none;float:left;position:absolute;top:60px;z-index:99999}.main-navigation ul ul ul{left:100%;top:-1px}.main-navigation ul li:hover>ul{display:block}.main-navigation li.current-menu-ancestor>a,.main-navigation li.current_page_item>a,.main-navigation li.current-menu-item>a{color:#333}.main-navigation .sub-menu{width:200px;text-align:left;background:#fff}.main-navigation .sub-menu li{display:block}.main-navigation .sub-menu li:first-child{padding-top:10px}.main-navigation .sub-menu li:last-child{padding-bottom:8px}.main-navigation .sub-menu ul{top:-10px}.main-navigation .sub-menu li:first-child ul{top:-1px}.main-navigation .sub-menu a{text-transform:none;display:block;line-height:18px;padding:10px 20px}.menu-social-container{position:absolute;right:20px}.menu-social-container li{display:inline;font-size:12px;line-height:60px;position:relative}.menu-social-container a{padding-left:15px;padding-right:0}.menu-social-container a:before{position:relative;top:-3px;padding-right:3px}.page-links{clear:both;margin:0 0 30px}.entry-meta{font-size:11px;margin:0 0 25px 0}.featured-image{margin:0 0 30px 0}.featured-image img{box-shadow:0 0 2px 0 rgba(0,0,0,0.3);-moz-box-shadow:0 0 2px 0 rgba(0,0,0,0.3);-webkit-box-shadow:0 0 2px 0 rgba(0,0,0,0.3);width:1060px}.featured-image img,.featured-image a{display:block}.site-content [class*="navigation"]{margin:0 0 20px;overflow:hidden}[class*="navigation"] .nav-previous{float:left;width:50%}[class*="navigation"] .nav-next{float:right;text-align:right;width:50%}.site-header{background:#fff;min-height:60px;box-shadow:0 0 3px 0 rgba(0,0,0,0.3);-moz-box-shadow:0 0 3px 0 rgba(0,0,0,0.3);-webkit-box-shadow:0 0 3px 0 rgba(0,0,0,0.3);margin-bottom:60px}.site-branding{float:left;background:#e55449;padding:0 15px}.site-header .site-branding a{color:#fff;display:block}.site-branding:hover{opacity:.90}.site-header .site-title{font-weight:normal;font-weight:300;margin:0;font-size:19px;line-height:60px;white-space:nowrap;display:block}.site-header .imagelogo img{display:block}.site-header .imagelogo{background:0}.site-header .imagelogo .site-title{line-height:1}.content-width{margin:0 auto;position:relative}.site-content{padding-bottom:20px;word-wrap:break-word}.site-footer{font-size:12px;color:#afafaf;border-top:1px solid #ccc;padding:20px;text-align:center;width:1060px;margin:0 auto}.more-link{text-transform:uppercase;padding:6px 18px;border:2px solid #e45348;border-radius:4px;-moz-border-radius:4px;-webkit-border-radius:4px;display:inline-block;font-size:13px;margin-top:10px}*,*:before,*:after{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box}.screen-reader-text{clip:rect(1px,1px,1px,1px);position:absolute !important}.screen-reader-text:hover,.screen-reader-text:active,.screen-reader-text:focus{background-color:#f1f1f1;border-radius:3px;-moz-border-radius:3px;-webkit-border-radius:3px;box-shadow:0 0 2px 2px rgba(0,0,0,0.6);-moz-box-shadow:0 0 2px 2px rgba(0,0,0,0.6);-webkit-box-shadow:0 0 2px 2px rgba(0,0,0,0.6);clip:auto !important;color:#21759b;display:block;font-size:14px;font-weight:bold;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}.clear:before,.clear:after,[class*="content"]:before,[class*="content"]:after,[class*="site"]:before,[class*="site"]:after{content:"";display:table}.clear:after,[class*="content"]:after,[class*="site"]:after{clear:both}.content-width{width:1100px;padding:0 20px}@media only screen and (min-width:960px) and (max-width:1199px){.content-width{width:960px}}@media only screen and (min-width:768px) and (max-width:959px){.content-width{width:748px}}@media only screen and (max-width:767px){.main-navigation ul{display:none}.menu-social-container{display:none}.content-width,.site-footer{width:auto}.admin textarea{width:100%!important}.menu-social-container ul{margin:15px 0 0 0;text-align:center}#navigation-small{display:inline;display:inline-block}}@media only screen and (max-width:480px){#promo-wrap .promo-content{font-size:23px;line-height:33px}.column-grid .column{width:100%;display:block;float:none;clear:both}.hidemobile{display:none}}.login input[type=text],.contact input[type=text]{width:30%;margin:0 10px 10px 0}.contact textarea{margin-bottom:20px;resize:none}[class*="entypo-"]:before{padding:0 5px 0 5px;font-family:"entypo",sans-serif}.social{margin:20px 0;padding-top:10px}.social a{font-size:28px}.tinambo{font-family:"Mystery Quest"}article.excerpt{margin-bottom:30px}.greet{margin:0 0 20px 0;font-size:28px;text-align:right}.entry-meta span{margin-right:10px}.admin th.small{width:40px}.admin section p{line-height:26px}tr:nth-child(even){background-color:#fafafa}tr:nth-child(odd){background-color:#fff}tr:hover{background-color:#ededed}td,th{padding:4px 10px;text-align:left}th{background-color:#e55449;color:#fff}th:last-child,td:last-child{font-size:26px;text-align:center;width:140px}td span{color:#e55449}.admin input[type="text"],input.search,.admin select{font-size:20px;margin:0 10px 10px 0;width:522px;padding:5px;border:1px solid #b6b6b6}.admin .last{margin-right:0 !important}.admin textarea{font-size:20px;height:500px;resize:none;padding:5px;border:1px solid #b6b6b6;width:1060px}.admin .images div img{vertical-align:middle;max-height:147px;max-width:147px}.admin .images span.helper{display:inline-block;vertical-align:middle}.admin .images>div{position:relative;text-align:center;width:168px;height:168px;border:1px solid #b6b6b6;float:left;margin:0 8px 8px 0;padding:10px;background-color:#fff}.admin .images>div .imagepath{border-radius:0;position:absolute;width:168px;font-size:12px;bottom:-11px;left:-1px}.admin .images>div:hover{background-color:#f8f8f8}.admin th.small{width:40px}form label{margin-right:10px}input[type=file]{width:230px}.clearfix:after{content:".";display:block;clear:both;visibility:hidden;line-height:0;height:0}* html .clearfix{height:1%}.admin form p{margin:20px 0}.message{padding:20px;margin:10px 0}.message.error{background-color:#ffafc1}.message.info{background-color:#aed8be}.key{color:#fff;padding:0 10px}.key.ok{background-color:#8fd800}.key.notok{background-color:#ff6e98}.admin .images>div{position:relative}.admin .images .controls{position:absolute;width:32px;height:32px;background-color:#fff;border:1px solid #b6b6b6;display:none}.admin .images .preview{top:0;left:0;border-top:0;border-left:0}.admin .images .image-info{top:32px;left:0;border-top:0;border-left:0}.admin .images .picozu{top:0;right:0;border-top:0;border-right:0}.admin .images>div:hover .controls{display:block}.admin div.info{background-color:#444;color:#fff;border:1px solid #555;padding:5px 10px}.admin div.info span{width:200px;display:inline-block;color:#888}' . "\n";
                 if ($this->blog->config->get('picozuKey')) {
                     $out .= '/* ClassyPicozu v1.0.1 https://vox.space */.picozu-lightbox-move *{-webkit-box-sizing:content-box;-moz-box-sizing:content-box;box-sizing:content-box}.picozu-lightbox-overlay{background:#2b2b2b;-webkit-tap-highlight-color:rgba(0,0,0,0)}.picozu-lightbox{position:relative;padding:0;border:7px solid #2b2b2b;border-radius:10px;-o-border-radius:10px;-ms-border-radius:10px;-moz-border-radius:10px;-webkit-border-radius:10px}.picozu-lightbox-html{z-index:7000;position:relative;border:0;padding:0;vertical-align:top;-webkit-overflow-scrolling:touch}.picozu-lightbox-html iframe{vertical-align:top;display:block}.picozu-lightbox .background{position:absolute;top:0;left:0;z-index:6999;float:left;padding:0}.picozu-lightbox.mode-image .lightbox-html{z-index:6998;padding:0}.picozu-lightbox.mode-html .background{background:#fff}.picozu-lightbox.mode-html .lightbox-html{overflow:auto}.picozu-lightbox .close{background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAAdBAMAAADm/gmrAAAAMFBMVEUAAABAMTgrKyv/cbErKyv/cbErKyv////+4+7U1NQ/Pz//nMhqamr/udiPj4+ysrICPbt1AAAABXRSTlMAI+qsrAlLTzEAAAEJSURBVHhetdM/SgNBFMfx8QZBsLeytrFXC2ubgYVlQSymWJakkm/ibpIqDOQAWcgBhD1A2BtkTxC8gd5AW3fAeTNbbaO/9jPvT/FGnd0byfOdUjc65FqpcwfikwsdZ6IeTJxbX+zLrwZ8qQd5VGaQp7/nrjKm4Oi5LbVOOQjbnjq2nump5cVzDtvc8ircE4HNJ4sGPjy/M0/gJDwDWMtqGcA82rwGdsLaApuIG1i8BU5cccRTWJnAGSxj7oBj4BY4BC4AKuEUoAzcQN0P95yAjTbPa9Yz2Hu2LDPYeJ7CztSsftmRe+K5cI0b4dQ1Tihl9vfeTfiS5q6vPf37tYxc6sidj/ySkT/2A1vvTc0qveHvAAAAAElFTkSuQmCC) no-repeat 0 0;position:absolute;top:12px;right:-26px;opacity:1;width:29px;height:29px}.picozu-lightbox .close:hover{background-position:-30px 0}.picozu-lightbox.mode-image .close{right:14px;z-index:7002;opacity:.7}.picozu-lightbox .close span{display:none}.picozu-lightbox.mode-image:hover .close{opacity:.9}.picozu-lightbox .loader{position:relative;display:block;height:46px;width:46px;margin:33% auto;border-radius:50%;-o-border-radius:50%;-ms-border-radius:50%;-moz-border-radius:50%;-webkit-border-radius:50%;background-color:#ddd;overflow:hidden}.picozu-lightbox .loader:after{content:"";position:absolute;top:9px;left:9px;display:block;height:28px;width:28px;background-color:#fff;border-radius:50%;-o-border-radius:50%;-ms-border-radius:50%;-moz-border-radius:50%;-webkit-border-radius:50%}.picozu-lightbox .loader>span{position:absolute;height:100%;width:50%;overflow:hidden}.picozu-lightbox .left{left:0}.picozu-lightbox .right{left:50%}.picozu-lightbox .anim{position:absolute;left:100%;top:0;height:100%;width:100%;border-radius:999px;background-color:#ed1978;opacity:.7;-webkit-animation:ui-spinner-rotate-left 5s infinite;animation:ui-spinner-rotate-left 5s infinite;-webkit-transform-origin:0 50% 0;transform-origin:0 50% 0}.picozu-lightbox .left .anim{border-bottom-left-radius:0;border-top-left-radius:0}.picozu-lightbox .right .anim{border-bottom-right-radius:0;border-top-right-radius:0;left:-100%;-webkit-transform-origin:100% 50% 0;transform-origin:100% 50% 0}@keyframes ui-spinner-rotate-right{0{transform:rotate(0)}25%{transform:rotate(180deg)}50%{transform:rotate(180deg)}75%{transform:rotate(360deg)}100%{transform:rotate(360deg)}}@keyframes ui-spinner-rotate-left{0{transform:rotate(0)}25%{transform:rotate(0)}50%{transform:rotate(180deg)}75%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}@-webkit-keyframes ui-spinner-rotate-right{0{-webkit-transform:rotate(0)}25%{-webkit-transform:rotate(180deg)}50%{-webkit-transform:rotate(180deg)}75%{-webkit-transform:rotate(360deg)}100%{-webkit-transform:rotate(360deg)}}@-webkit-keyframes ui-spinner-rotate-left{0{-webkit-transform:rotate(0)}25%{-webkit-transform:rotate(0)}50%{-webkit-transform:rotate(180deg)}75%{-webkit-transform:rotate(180deg)}100%{-webkit-transform:rotate(360deg)}}' . "\n";
                 }
@@ -2516,7 +2723,7 @@ class _L {
         'Newer' => '',
         'Older' => '',
         'Go to homepage' => '',
-        'Unfortunately, the page you were looking for wasn`t found.' => '',
+        'Unfortunately, the page you were looking for was not found.' => '',
         'Unfortunately you haven`t created any posts, so why not start writing some right now?' => '',
         'Share to Facebook' => '',
         'Share to Twitter' => '',
@@ -2611,7 +2818,15 @@ class _L {
         'Not Authorized' => '',
         'so you will need to do that before you can start using your website.' => '',
         'Invalid API endpoint.' => '',
-        'Invalid method data.' => ''
+        'Invalid method data.' => '',
+        'Image information' => '',
+        'File Name' => '',
+        'Size' => '',
+        'Dimensions' => '',
+        'Image tag' => '',
+        'pixels' => '',
+        'bytes' => '',
+        'Image type' => ''
     );
 
     /**

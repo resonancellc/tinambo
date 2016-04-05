@@ -40,7 +40,7 @@ Features
 - minify option that will minimize and obfuscate the HTML code.
 - full HTML5-compliant.
 - embed mode when you want to embed the blog into an existing design.
-- many other things that you can discover in this 130Kb application (comments,
+- many other things that you can discover in this under-200Kb application (comments,
 	lots of them, included in that).
 
 Installation
