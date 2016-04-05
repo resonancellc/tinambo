@@ -129,7 +129,7 @@ class TinamboConfig {
         'disqusId' => false,
         /* your admin area slug, change this if you want more security */
         'slugs' => array(
-            'editor' => 'panel',
+            'editor' => 'editor',
             'blog' => 'blog'
         ),
         /* your auth key, CHANGE THIS to something only you know, and
