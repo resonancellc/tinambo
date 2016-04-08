@@ -131,6 +131,8 @@ class TinamboConfig {
         'commentsType' => false,
         /* Disqus forum id or false to disable Disqus integration */
         'disqusId' => false,
+        /* Text encoding, by default should be utf-8 */
+        'textEncoding' => 'utf-8',
         /* your admin area slug, change this if you want more security */
         'slugs' => array(
             'editor' => 'editor',
@@ -1751,7 +1753,7 @@ class TinamboTemplate {
                             $this->tagCSS($b->formatURL('css')) .
                             $this->tagCSS('//fonts.googleapis.com/css?family=Open+Sans|Mystery+Quest') .
                             $this->tagCSS('//weloveiconfonts.com/api/?family=entypo') . '
-                            <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />' .
+                            <meta http-equiv="Content-Type" content="text/html;charset=' . $b->config->get('textEncoding') . '" />' .
                             $this->tagMeta('author', 'Tinambo v' . $b->getVersion()) .
                             (!$b->isAdmin() && $b->config->get('facebookAppId') ? $this->tagMeta('fb:app_id', $b->config->get('facebookAppId')) : '') .
                             $this->tagScript('//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js') .
@@ -1812,7 +1814,7 @@ class TinamboTemplate {
                 }
                 break;
             case 'header_rss':
-                $out .= '<?xml version="1.0" encoding="UTF-8"?>
+                $out .= '<?xml version="1.0" encoding="' . $b->config->get('textEncoding') . '"?>
                     <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:sy="http://purl.org/rss/1.0/modules/syndication/" xmlns:slash="http://purl.org/rss/1.0/modules/slash/">
                         <channel>
                             <title>' . $b->getTitle() . '</title>
@@ -1831,7 +1833,7 @@ class TinamboTemplate {
                 break;
             case 'header_atom':
                 $authors = $b->getAuthors();
-                $out .= '<?xml version="1.0" encoding="utf-8"?>
+                $out .= '<?xml version="1.0" encoding="' . $b->config->get('textEncoding') . '"?>
                     <feed xmlns="http://www.w3.org/2005/Atom">
                         <title>' . $b->getTitle() . '</title>
                         <link href="' . $b->formatURL() . '" />
@@ -1884,7 +1886,8 @@ class TinamboTemplate {
                             'description' => $b->getDescription(),
                             'url' => $b->formatURL(),
                             'authors' => $b->getAuthors(),
-                            'software' => 'Tinambo v' . $b->getVersion()
+                            'software' => 'Tinambo v' . $b->getVersion(),
+                            'encoding' => $b->config->get('textEncoding')
                         ),
                         'posts' => array(),
                         'pages' => array()
