@@ -1125,7 +1125,7 @@ class TinamboTemplate {
         $pages = $this->blog->getPages();
         switch ($as) {
             case 'select':
-                $out .= '<option value="false">-- select parent --</option>';
+                $out .= '<option value="false">-- ' . _L::get('select parent') . ' --</option>';
                 for ($i = 0; $i < count($pages); $i++) {
                     if ($selected == $pages[$i]->getId()) {
                         $select = ' selected="selected"';
@@ -1329,9 +1329,7 @@ class TinamboTemplate {
      * @returns String
      */
     public function tagHeader($title) {
-        return '<header class="entry-header clearfix">
-                    <h1 class="entry-title">' . $title . '</h1>
-                </header>';
+        return '<header class="entry-header clearfix"><h1 class="entry-title">' . $title . '</h1></header>';
     }
 
     /**
@@ -2840,7 +2838,8 @@ class _L {
         'bytes' => '',
         'Image type' => '',
         'yes' => '',
-        'no' => ''
+        'no' => '',
+        'select parent' => ''
     );
 
     /**
