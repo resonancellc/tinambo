@@ -874,11 +874,7 @@ class TinamboBlog {
         }
         return false;
     }
-    /*
-        public function sanitize($string) {
-            return htmlspecialchars(strip_tags(trim($string)));
-        }
-    */
+
     /**
      * Increment the last post id and return it
      *
@@ -963,7 +959,7 @@ class TinamboBlog {
 }
 
 /**
- * Template generation class
+ * Tinambo Template generation class
  */
 class TinamboTemplate {
 
@@ -996,6 +992,9 @@ class TinamboTemplate {
         );
         if (!$this->blog->config->get('enablePages')) {
             unset($this->adminPages[_L::get('Pages')]);
+        }
+        if (!$this->blog->config->get('enableUpload')) {
+            unset($this->adminPages[_L::get('Images')][_L::get('Upload Image')]);
         }
     }
 
