@@ -103,6 +103,8 @@ class TinamboConfig {
          * and make them really unique, at least 8 random alphanumeric chars */
         'apiKey' => false,
         'apiSecret' => false,
+        /* enable OPML feeds */
+        'enableOPML' => true,
         /* enable ATOM feeds */
         'enableATOM' => true,
         /* enable the contact form page */
@@ -315,6 +317,15 @@ class TinamboBlog {
                 $out .= $this->loadExternalFile('header_rss') .
                         $this->loadExternalFile('rss', 'template', $this->posts) .
                         $this->loadExternalFile('footer_rss');
+                break;
+            case 'opml':
+                if (!$this->config->get('enableOPML')) {
+                    $this->get404();
+                }
+                header('Content-type: text/x-opml');
+                $out .= $this->loadExternalFile('header_opml') .
+                        $this->loadExternalFile('opml', 'template', $this->posts) .
+                        $this->loadExternalFile('footer_opml');
                 break;
             case 'atom':
                 if (!$this->config->get('enableATOM')) {
@@ -967,6 +978,7 @@ class TinamboTemplate {
 
     private $blog;
     private $adminPages = array();
+    private $shortCodes = array();
 
     /**
      * Object constructor
@@ -1813,6 +1825,37 @@ class TinamboTemplate {
                     $out .= $this->get('noposts');
                 }
                 break;
+            case 'header_opml':
+                $authors = $b->getAuthors();
+                $out .= '<?xml version="1.0" encoding="' . $b->config->get('textEncoding') . '"?>
+                    <opml version="2.0">
+                        <head>
+                            <title>' . $b->getTitle() . '</title>
+                            <dateCreated>' . date('r') . '</dateCreated>
+                            <dateModified>' . date('r') . '</dateModified>
+                            <ownerName>' . $authors[0] . '</ownerName>
+                            <ownerEmail>' . $b->getEmail() . '</ownerEmail>
+                            <expansionState></expansionState>
+                            <vertScrollState>1</vertScrollState>
+                            <windowTop>60</windowTop>
+                            <windowLeft>60</windowLeft>
+                            <windowBottom>560</windowBottom>
+                            <windowRight>840</windowRight>
+                        </head>
+                    <body>' . "\n";
+                break;
+            case 'footer_opml':
+                $out .= '</body>' . "\n" . '
+                    </opml>';
+                break;
+            case 'opml':
+                if ($b->config->get('enableRSS')) {
+                    $out .= '<outline text="' . $b->getTitle() . ' RSS2 Feed" description="' . $b->getDescription() . '" htmlUrl="' . $b->formatURL() . '" language="unknown" title="' . $b->getTitle() . '" type="rss" version="RSS2" xmlUrl="' . $this->blog->formatURL('rss') . '" />' . "\n";
+                }
+                if ($b->config->get('enableATOM')) {
+                    $out .= '<outline text="' . $b->getTitle() . ' ATOM Feed" description="' . $b->getDescription() . '" htmlUrl="' . $b->formatURL() . '" language="unknown" title="' . $b->getTitle() . '" type="atom" version="ATOM" xmlUrl="' . $this->blog->formatURL('atom') . '" />' . "\n";
+                }
+                break;
             case 'header_rss':
                 $out .= '<?xml version="1.0" encoding="' . $b->config->get('textEncoding') . '"?>
                     <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:sy="http://purl.org/rss/1.0/modules/syndication/" xmlns:slash="http://purl.org/rss/1.0/modules/slash/">
@@ -1825,10 +1868,10 @@ class TinamboTemplate {
                             <language>en-US</language>
                             <sy:updatePeriod>hourly</sy:updatePeriod>
                             <sy:updateFrequency>1</sy:updateFrequency>
-                            <generator>Tinambo v' . $b->getVersion() . '</generator>';
+                            <generator>Tinambo v' . $b->getVersion() . '</generator>' . "\n";
                 break;
             case 'footer_rss':
-                $out .= '</channel>
+                $out .= '</channel>' . "\n" . '
                     </rss> ';
                 break;
             case 'header_atom':
@@ -1841,7 +1884,7 @@ class TinamboTemplate {
                         <author>
                             <name>' . $authors[0] . '</name>
                         </author>
-                        <id>urn:uuid:' . $b->getGuid() . '</id>';
+                        <id>urn:uuid:' . $b->getGuid() . '</id>' . "\n";
                 break;
             case 'footer_atom':
                 $out .= '</feed>';
@@ -1918,7 +1961,7 @@ class TinamboTemplate {
                             <category><![CDATA[' . $post[$i]->getCategory() . ']]></category>
                             <guid isPermaLink="false">' . $post[$i]->getPermalink() . '</guid>
                             <description><![CDATA[' . $post[$i]->getRawExcerpt() . ']]></description>
-                        </item>';
+                        </item>' . "\n";
                     }
                 }
                 break;
@@ -1931,7 +1974,7 @@ class TinamboTemplate {
                             <id>urn:uuid:' . $b->getGuid() . '</id>
                             <updated>' . date('c', strtotime($post[$i]->getDate())) . '</updated>
                             <summary><![CDATA[' . $post[$i]->getRawExcerpt() . ']]></summary>
-                        </entry>';
+                        </entry>' . "\n";
                     }
                 }
                 break;
