@@ -37,7 +37,7 @@
  *
  * Written by Marius Stanciu - Sergiu <marius@vox.space>
  * Visit https://vox.space for more info
- * Version 2.0.0
+ * Version 2.1.0
  *
  */
 
@@ -179,7 +179,7 @@ class TinamboBlog {
     public $js;
     public $config;
 
-    private $version = '2.0.0';
+    private $version = '2.1.0';
 
     private $postFiles;
     private $posts;

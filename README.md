@@ -34,7 +34,7 @@ Features
 - image editing via Picozu Image Editor.
 - Facebook or Disqus comments.
 - built-in jQuery via Google AJAX libs.
-- RSS and ATOM feeds.
+- RSS ATOM and OPML feeds.
 - JSON API output so you can integrate 3rd party apps to post/view data
 	to/from your blog.
 - minify option that will minimize and obfuscate the HTML code.
