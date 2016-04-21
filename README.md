@@ -80,8 +80,13 @@ by issueing:
 Additional links
 ================
 
-| Resource		| Link 					|
-| --------------|-----------------------|
-| vox.space 	| https://vox.space 	|
-| PHP 			| https://php.net 		|
-| JSON			| http://www.json.org 	|
+| Resource					| Link 											|
+| --------------------------|-----------------------------------------------|
+| vox.space 				| https://vox.space 							|
+| PHP 						| https://php.net 								|
+| JSON						| http://www.json.org 							|
+| RSS 1.0 specification 	| http://web.resource.org/rss/1.0/				|
+| RSS 2.0 specification		| http://www.rssboard.org/rss-specification		|
+| Atom Syndication Format	| https://tools.ietf.org/html/rfc4287			|
+| Atom Publishing Protocol	| https://tools.ietf.org/html/rfc5023			|
+| OPML 2.0 specification 	| http://dev.opml.org/spec2.html 				|
