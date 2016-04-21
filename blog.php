@@ -1765,8 +1765,11 @@ class TinamboTemplate {
                             $this->tagCSS($b->formatURL('css')) .
                             $this->tagCSS('//fonts.googleapis.com/css?family=Open+Sans|Mystery+Quest') .
                             $this->tagCSS('//weloveiconfonts.com/api/?family=entypo') .
-                            (!$b->config->get('enableATOM') ? '' : '<link href="' . $this->blog->formatURL('atom') . '" type="application/atom+xml" rel="alternate" title="' . $b->getTitle() . ' ATOM Feed" />') .
-                            (!$b->config->get('enableRSS') ? '' : '<link href="' . $this->blog->formatURL('rss') . '" type="application/rss+xml" rel="alternate" title="' . $b->getTitle() . ' RSS 2.0 Feed" />') .
+                            (!$b->isAdmin() ?
+                                (!$b->config->get('enableATOM') ? '' : '<link href="' . $this->blog->formatURL('atom') . '" type="application/atom+xml" rel="alternate" title="' . $b->getTitle() . ' ATOM Feed" />') .
+                                (!$b->config->get('enableRSS') ? '' : '<link href="' . $this->blog->formatURL('rss') . '" type="application/rss+xml" rel="alternate" title="' . $b->getTitle() . ' RSS 2.0 Feed" />')
+                                : ''
+                            ) .
                             '<meta http-equiv="Content-Type" content="text/html;charset=' . $b->config->get('textEncoding') . '" />' .
                             $this->tagMeta('author', 'Tinambo v' . $b->getVersion()) .
                             (!$b->isAdmin() && $b->config->get('facebookAppId') ? $this->tagMeta('fb:app_id', $b->config->get('facebookAppId')) : '') .
