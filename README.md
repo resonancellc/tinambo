@@ -9,18 +9,11 @@
 Description
 ===========
 
-Tinambo is a one-file flat-file blogging system written in PHP (version doesn't matter),
-that doesn't have any other requirements than PHP to run. It doesn't need a
-database, it stores the posts and pages into JSON text files and it it fully PHP 7
-compatible.
+Tinambo is a one-file flat-file blogging system written in PHP (version doesn't matter), that doesn't have any other requirements than PHP to run. It doesn't need a database, it stores the posts and pages into JSON text files and it is fully PHP 7 compatible.
 
-As a flat-file system, Tinambo stores the content in files and folders, which has a
-handful of advantages. You don’t need to query the database each time you show a page
-and the flat-file system generates dynamic pages.
+As a flat-file system, Tinambo stores the content in files and folders, which has a handful of advantages. You don’t need to query the database each time you show a page and the flat-file system generates dynamic pages.
 
-There’s no need to configure or maintain a database and this is a big thing for a
-lot of people; it saves a lot of time and often is a headache. Installation is usually
-just a matter of uploading files to a server and boom. Your site is ready.
+There’s no need to configure or maintain a database and this is a big thing for a lot of people; it saves a lot of time and often is a headache. Installation is usually just a matter of uploading files to a server and boom. Your site is ready.
 
 Features
 ========
@@ -48,23 +41,17 @@ Features
 Installation
 ============
 
-Simply edit the settings at the top of the blog.php file, then copy the blog.php
-file to your host and rename it if you want. The script will automatically create
-the `images` `pages` and `posts` directories.
+Simply edit the settings at the top of the blog.php file, then copy the blog.php file to your host and rename it if you want. The script will automatically create the `images` `pages` and `posts` directories.
 
 Configuration
 =============
 
-All Tinambo's settings are located at the top of the blog.php file, each is
-commented as well as possible, make sure you only change what you need and
-understand the implications. Changing the `key` to something different than
-`false` is required before you can login to the admin panel.
+All Tinambo's settings are located at the top of the blog.php file, each is commented as well as possible, make sure you only change what you need and understand the implications. Changing the `key` to something different than `false` is required before you can login to the admin panel.
 
 License
 =======
 
-Tinambo is written by Marius Stanciu - Sergiu marius AT vox.space and released
-into the Public Domain. It can't get any more free than that.
+Tinambo is written by Marius Stanciu - Sergiu marius AT vox.space and released into the Public Domain. It can't get any more free than that.
 
 Contributing
 ============
@@ -74,8 +61,7 @@ Contributions are welcome! If you need any help, contact me at marius AT vox.spa
 Source code
 ===========
 
-The application can be downloaded from https://vox.space or from GitHub.com
-by issueing:
+The application can be downloaded from https://vox.space or from GitHub.com by issueing:
 
 `git clone https://github.com/voxspace/tinambo.git`
 
