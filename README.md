@@ -29,14 +29,12 @@ Features
 - image editing via [Picozu Image Editor](https://www.picozu.com).
 - Facebook or Disqus comments.
 - built-in jQuery via Google AJAX libs.
-- RSS ATOM and OPML feeds.
-- JSON API output so you can integrate 3rd party apps to post/view data
-	to/from your blog.
+- RSS, ATOM and OPML feeds.
+- JSON API output so you can integrate 3rd party apps to post/view data to/from your blog.
 - minify option that will minimize and obfuscate the HTML code.
 - full HTML5-compliant.
 - embed mode when you want to embed the blog into an existing design.
-- many other things that you can discover in this under-200Kb application (comments,
-	lots of them, included in that).
+- many other things that you can discover in this under-200Kb application (code comments, lots of them, included in that).
 
 Installation
 ============
