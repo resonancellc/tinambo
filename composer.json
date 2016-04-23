@@ -8,11 +8,11 @@
     "keywords": ["blog", "cms", "flatfile", "nodb"],
     "homepage": "https://vox.space",
 	"authors": [
-		{
+        {
             "name": "Marius Stanciu - Sergiu",
             "email": "marius@vox.space",
             "homepage": "https://vox.space",
             "role": "Developer"
         }
-	]
+    ]
 }
