@@ -9,9 +9,10 @@
 Description
 ===========
 
-Tinambo is a one-file flat-file blogging system written in PHP (version doesnt' matter),
+Tinambo is a one-file flat-file blogging system written in PHP (version doesn't matter),
 that doesn't have any other requirements than PHP to run. It doesn't need a
-database, it stores the posts and pages into JSON text files.
+database, it stores the posts and pages into JSON text files and it it fully PHP 7
+compatible.
 
 As a flat-file system, Tinambo stores the content in files and folders, which has a
 handful of advantages. You don’t need to query the database each time you show a page
