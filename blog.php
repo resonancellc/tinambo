@@ -2169,6 +2169,7 @@ class TinamboPost {
     private $sticky;
     private $file;
     private $blog;
+    private $url;
     private $flagIsPage;
 
     /**
@@ -2194,6 +2195,7 @@ class TinamboPost {
             $this->category = isset($data->category) ? $data->category : false;
             $this->sticky = isset($data->sticky) ? $data->sticky : false;
             $this->published = isset($data->published) ? $data->published : false;
+            $this->url = $this->getPermalink();
             $this->file = $file;
         } else if ($parType == 'array') {
             $authors = $this->blog->getAuthors();
@@ -2207,6 +2209,7 @@ class TinamboPost {
             $this->headerImage = isset($file['headerImage']) ? $blog->security->sanitize($file['headerImage']) : '';
             $this->sticky = isset($file['sticky']) ? true : false;
             $this->published = isset($file['published']) ? true : false;
+            $this->url = $this->getPermalink();
             $this->file = false;
         }
     }
@@ -2510,6 +2513,7 @@ class TinamboPost {
         $data->headerImage = $this->headerImage;
         $data->sticky = $this->sticky;
         $data->published = $this->published;
+        $data->url = $this->url;
         return json_encode($data);
     }
 
@@ -2531,6 +2535,7 @@ class TinamboPost {
         $data['headerImage'] = $this->headerImage;
         $data['sticky'] = $this->sticky;
         $data['published'] = $this->published;
+        $data['url'] = $this->url;
         return $data;
     }
 
