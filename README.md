@@ -24,6 +24,7 @@ just a matter of uploading files to a server and boom. Your site is ready.
 Features
 ========
 
+- full responsive for best mobile experience.
 - posts, pages, image attachments.
 - customizable URL slug for admin panel (security by obscurity is good).
 - editor area for easy blog administration.
@@ -31,7 +32,7 @@ Features
 - full-text search.
 - Facebook and Twitter integration.
 - Google Analytics integration.
-- image editing via Picozu Image Editor.
+- image editing via [Picozu Image Editor](https://www.picozu.com).
 - Facebook or Disqus comments.
 - built-in jQuery via Google AJAX libs.
 - RSS ATOM and OPML feeds.
