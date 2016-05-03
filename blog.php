@@ -1412,7 +1412,7 @@ class TinamboTemplate {
                     </thead>
                     <tbody>';
                 foreach ($b->config->getAll() as $key => $value) {
-                    if (!is_array($value) && $key != 'key') {
+                    if (!is_array($value) && $key != 'key' && $key != 'encryptionKey' && $key != 'encryptionIV') {
                         if (is_bool($value) && $value) {
                             $val = '<span class="entypo-check yes">' . _L::get('yes') . '</span>';
                         } else if (is_bool($value) && !$value) {
