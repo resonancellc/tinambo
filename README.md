@@ -6,7 +6,7 @@
         \:  |    /\  |\|    \    \ | /   /  \\  \ |.  \    /:  ||: |_)  :)\        /   
          \__|   (__\_|_)\___|\____\)(___/    \___)|___|\__/|___|(_______/  \"_____/    
 
-Description
+Description [![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/) 
 ===========
 
 Tinambo is a one-file flat-file blogging system written in PHP (version doesn't matter), that doesn't have any other requirements than PHP to run. It doesn't need a database, it stores the posts and pages into JSON text files and it is fully PHP 7 compatible.
